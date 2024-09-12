@@ -5,9 +5,9 @@ import dbPool from '../utils/db-util';
 interface Message {
   type: string;
   robot_ip: string;
-  no: number;
-  value: number; // Number olarak tanımlandı
+  value: number;
   name: string;
+  no: number; // no değerini de ekledik
 }
 
 const variableTransaction = async (message: Message): Promise<void> => {
@@ -21,43 +21,43 @@ const variableTransaction = async (message: Message): Promise<void> => {
     switch (message.type) {
       case 'd_read':
         updateQuery =
-          `UPDATE d_read SET value = $3, name = $4, updated_at = NOW() WHERE robot_ip = $1 AND no = $2 RETURNING *`;
+          `UPDATE d_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
         id = uuidv4();
         insertQuery =
-          `INSERT INTO d_read (id, robot_ip, no, value, name) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.no, message.value, message.name];
+          `INSERT INTO d_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+        values = [id, message.robot_ip, message.value, message.name, message.no];
         break;
       case 'r_read':
         updateQuery =
-          `UPDATE r_read SET value = $3, name = $4, updated_at = NOW() WHERE robot_ip = $1 AND no = $2 RETURNING *`;
+          `UPDATE r_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
         id = uuidv4();
         insertQuery =
-          `INSERT INTO r_read (id, robot_ip, no, value, name) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.no, message.value, message.name];
+          `INSERT INTO r_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+        values = [id, message.robot_ip, message.value, message.name, message.no];
         break;
       case 's_read':
         updateQuery =
-          `UPDATE s_read SET value = $3, name = $4, updated_at = NOW() WHERE robot_ip = $1 AND no = $2 RETURNING *`;
+          `UPDATE s_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
         id = uuidv4();
         insertQuery =
-          `INSERT INTO s_read (id, robot_ip, no, value, name) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.no, message.value, message.name];
+          `INSERT INTO s_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+        values = [id, message.robot_ip, message.value, message.name, message.no];
         break;
       case 'ı_read':
         updateQuery =
-          `UPDATE ı_read SET value = $3, name = $4, updated_at = NOW() WHERE robot_ip = $1 AND no = $2 RETURNING *`;
+          `UPDATE ı_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
         id = uuidv4();
         insertQuery =
-          `INSERT INTO ı_read (id, robot_ip, no, value, name) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.no, message.value, message.name];
+          `INSERT INTO ı_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+        values = [id, message.robot_ip, message.value, message.name, message.no];
         break;
       case 'b_read':
         updateQuery =
-          `UPDATE b_read SET value = $3, name = $4, updated_at = NOW() WHERE robot_ip = $1 AND no = $2 RETURNING *`;
+          `UPDATE b_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
         id = uuidv4();
         insertQuery =
-          `INSERT INTO b_read (id, robot_ip, no, value, name) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.no, message.value, message.name];
+          `INSERT INTO b_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+        values = [id, message.robot_ip, message.value, message.name, message.no];
         break;
       default:
         console.log('Unknown variable type:', message.type);
@@ -65,7 +65,7 @@ const variableTransaction = async (message: Message): Promise<void> => {
     }
 
     // Önce güncellemeyi dene
-    const result = await dbPool.query(updateQuery, values.slice(1));
+    const result = await dbPool.query(updateQuery, [message.robot_ip, message.value, message.name, message.no]);
 
     if (result.rowCount === 0) {
       // Güncellenecek bir satır yoksa, yeni bir satır ekle
