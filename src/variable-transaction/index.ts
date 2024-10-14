@@ -4,7 +4,7 @@ import dbPool from '../utils/db-util';
 // Gelen mesajın türünü tanımlıyoruz
 interface Message {
   type: string;
-  robot_ip: string;
+  robot_ip: string; 
   value: number;
   name: string;
   no: number; // no değerini de ekledik
@@ -13,67 +13,49 @@ interface Message {
 const variableTransaction = async (message: Message): Promise<void> => {
   try {
     let updateQuery = '';
-    let insertQuery = '';
-    let values: (string | number)[] = [];
-    let id: string;
-
+    let controllerId = '';
+    
     // Gelen mesaja göre ilgili tabloya kaydet
     switch (message.type) {
       case 'd_read':
+
+
         updateQuery =
-          `UPDATE d_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
-        id = uuidv4();
-        insertQuery =
-          `INSERT INTO d_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.value, message.name, message.no];
+          `UPDATE d_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1`;
+        
         break;
       case 'r_read':
         updateQuery =
-          `UPDATE r_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
-        id = uuidv4();
-        insertQuery =
-          `INSERT INTO r_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.value, message.name, message.no];
+          `UPDATE r_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        
         break;
       case 's_read':
         updateQuery =
-          `UPDATE s_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
-        id = uuidv4();
-        insertQuery =
-          `INSERT INTO s_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.value, message.name, message.no];
+          `UPDATE s_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        
         break;
-      case 'ı_read':
+      case 'i_read':
         updateQuery =
-          `UPDATE ı_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
-        id = uuidv4();
-        insertQuery =
-          `INSERT INTO ı_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.value, message.name, message.no];
+          `UPDATE i_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        
         break;
       case 'b_read':
         updateQuery =
-          `UPDATE b_read SET value = $2, name = $3, no = $4, updated_at = NOW() WHERE robot_ip = $1 RETURNING *`;
-        id = uuidv4();
-        insertQuery =
-          `INSERT INTO b_read (id, robot_ip, value, name, no) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        values = [id, message.robot_ip, message.value, message.name, message.no];
+          `UPDATE b_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        
         break;
       default:
         console.log('Unknown variable type:', message.type);
         return;
     }
 
-    // Önce güncellemeyi dene
-    const result = await dbPool.query(updateQuery, [message.robot_ip, message.value, message.name, message.no]);
-
-    if (result.rowCount === 0) {
-      // Güncellenecek bir satır yoksa, yeni bir satır ekle
-      await dbPool.query(insertQuery, values);
-      console.log(`${message.type} data inserted successfully`);
-    } else {
-      console.log(`${message.type} data updated successfully`);
+    const controllerDbRes = await dbPool.query(`SELECT id FROM controller WHERE ip_address = $1`, [message.robot_ip])
+    if(controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
+      controllerId = controllerDbRes.rows[0]?.id
     }
+    
+    // Önce güncellemeyi dene
+    await dbPool.query(updateQuery, [controllerId, message.value, message.name, message.no]);    
   } catch (err) {
     console.error('An error occurred while saving data to the database:', err);
   }
