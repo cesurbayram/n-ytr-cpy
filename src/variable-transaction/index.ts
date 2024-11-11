@@ -1,52 +1,57 @@
-import { v4 as uuidv4 } from 'uuid'; 
 import dbPool from '../utils/db-util';
 
-// Gelen mesajın türünü tanımlıyoruz
+interface Value {
+  name: string;
+  no: number;
+  value: number;
+}
 interface Message {
   type: string;
-  robot_ip: string; 
-  value: number;
-  name: string;
-  no: number; 
+  ip_address: string;
+  values: Value[];
 }
 
 const variableTransaction = async (message: Message): Promise<void> => {
   try {
     let updateQuery = '';
     let controllerId = '';
-    // Gelen mesaja göre ilgili tabloya kaydet
+
     switch (message.type) {
       case 'd_read':
-        updateQuery =
-          `UPDATE d_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1`;
-        
+        updateQuery = `UPDATE d_read SET value = $2, name = $3 WHERE controller_id = $1 AND no = $4`;
         break;
       case 'r_read':
-        updateQuery =
-          `UPDATE r_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        updateQuery = `UPDATE r_read SET value = $2, name = $3 WHERE controller_id = $1 AND no = $4`;
         break;
       case 's_read':
-        updateQuery =
-          `UPDATE s_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        updateQuery = `UPDATE s_read SET value = $2, name = $3 WHERE controller_id = $1 AND no = $4`;
         break;
       case 'i_read':
-        updateQuery =
-          `UPDATE i_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        updateQuery = `UPDATE i_read SET value = $2, name = $3 WHERE controller_id = $1 AND no = $4`;
         break;
       case 'b_read':
-        updateQuery =
-          `UPDATE b_read SET value = $2, name = $3, no = $4 WHERE controller_id = $1 `;
+        updateQuery = `UPDATE b_read SET value = $2, name = $3 WHERE controller_id = $1 AND no = $4`;
         break;
       default:
         console.log('Unknown variable type:', message.type);
         return;
     }
-    const controllerDbRes = await dbPool.query(`SELECT id FROM controller WHERE ip_address = $1`, [message.robot_ip])
-    if(controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id
+
+    const controllerDbRes = await dbPool.query(
+      `SELECT id FROM controller WHERE ip_address = $1`,
+      [message.ip_address]
+    );
+
+    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
+      controllerId = controllerDbRes.rows[0]?.id;
+    } else {
+      console.error('Controller not found for IP:', message.ip_address);
+      return;
     }
-    // Önce güncellemeyi dene
-    await dbPool.query(updateQuery, [controllerId, message.value, message.name, message.no]);    
+
+    for (const { name, no, value } of message.values) {
+      await dbPool.query(updateQuery, [controllerId, value, name, no]);
+    }
   } catch (err) {
     console.error('An error occurred while saving data to the database:', err);
   }
