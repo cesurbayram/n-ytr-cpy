@@ -25,7 +25,6 @@ wssMotocom.on('connection', (ws: WebSocket) => {
 
       console.log('Received:', parsedMessage);
 
-      // Gelen veriye göre ilgili işlem fonksiyonunu çağır
       switch (parsedMessage.type) {
         case "variable":
           await variableTransaction(parsedMessage.data);
@@ -41,7 +40,7 @@ wssMotocom.on('connection', (ws: WebSocket) => {
           break;
         default:
           console.log('Unknown message type:', parsedMessage.type);
-          return; // Bilinmeyen mesaj türü varsa işlem yapma
+          return;
       }
 
     } catch (err) {
