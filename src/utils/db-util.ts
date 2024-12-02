@@ -6,11 +6,11 @@ dotenv.config();
 const { Pool } = pg;
 
 const dbPool = new Pool({
-  user: String(process.env.USER),    // String olarak zorlayın
+  user: String(process.env.USER),
   host: String(process.env.HOST),
   database: String(process.env.DATABASE),
   port: 5432,
-  password: String(process.env.PASSWORD), // Şifreyi string olarak zorlayın
+  password: String(process.env.PASSWORD), 
   ssl: false,
 });
 

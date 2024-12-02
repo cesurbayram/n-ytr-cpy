@@ -16,6 +16,18 @@ const variableTransaction = async (message: Message): Promise<void> => {
     let updateQuery = '';
     let controllerId = '';
 
+    const controllerDbRes = await dbPool.query(
+      `SELECT id FROM controller WHERE ip_address = $1`,
+      [message.ip_address]
+    );
+
+    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
+      controllerId = controllerDbRes.rows[0]?.id;
+    } else {
+      console.error('Controller not found for IP:', message.ip_address);
+      return;
+    }
+
     switch (message.type) {
       case 'd_read':
         updateQuery = `UPDATE d_read SET value = $2, name = $3 WHERE controller_id = $1 AND no = $4`;
@@ -35,18 +47,6 @@ const variableTransaction = async (message: Message): Promise<void> => {
       default:
         console.log('Unknown variable type:', message.type);
         return;
-    }
-
-    const controllerDbRes = await dbPool.query(
-      `SELECT id FROM controller WHERE ip_address = $1`,
-      [message.ip_address]
-    );
-
-    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id;
-    } else {
-      console.error('Controller not found for IP:', message.ip_address);
-      return;
     }
 
     for (const { name, no, value } of message.values) {
