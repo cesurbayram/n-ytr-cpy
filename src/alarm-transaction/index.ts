@@ -70,7 +70,6 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
 
     for (const { code, alarm, text, origin_date } of message.values) {
       try {
-        // Aynı verinin zaten var olup olmadığını kontrol et
         const existingDataRes = await dbPool.query(selectQuery, [
           controllerId,
           code,
@@ -79,7 +78,6 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
           origin_date,
         ]);
 
-        // Eğer veri zaten varsa, atla
         if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
           console.log(
             `Duplicate data found in ${message.type}. Skipping insertion.`
@@ -87,7 +85,6 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
           continue;
         }
 
-        // Yeni bir UUID oluştur ve veriyi ekle
         const generatedId = uuidv4();
         await dbPool.query(insertQuery, [
           generatedId,
