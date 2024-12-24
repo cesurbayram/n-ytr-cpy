@@ -1,20 +1,18 @@
 import dbPool from "../utils/db-util";
-
 interface IOValue {
-  byteNumber: number; // Byte numarası
-  bits: boolean[]; // 8 bitlik dizi (true = aktif, false = inaktif)
+  byteNumber: number;
+  bits: boolean[];
 }
 
 interface IOMessage {
-  ip_address: string; // Controller IP adresi
-  values: IOValue[]; // I/O verileri
+  ip_address: string;
+  values: IOValue[];
 }
 
 const ioTransaction = async (message: IOMessage): Promise<void> => {
   try {
     let controllerId = "";
 
-    // 1. Controller ID'sini al
     const controllerDbRes = await dbPool.query(
       `SELECT id FROM controller WHERE ip_address = $1`,
       [message.ip_address]
@@ -28,7 +26,6 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
     }
 
     for (const { byteNumber, bits } of message.values) {
-      // 2. Belirli byteNumber için sinyal ID'sini al
       const signalRes = await dbPool.query(
         `SELECT id FROM io_signal WHERE controller_id = $1 AND byte_number = $2`,
         [controllerId, byteNumber]
@@ -41,11 +38,9 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
 
       const signalId = signalRes.rows[0].id;
 
-      // 3. Bit bilgilerini güncelle
       for (let bitIndex = 0; bitIndex < bits.length; bitIndex++) {
         const isActive = bits[bitIndex];
 
-        // Bit numarası formatı: `#20010 (EI I1)` gibi
         const bitNumber = `#${byteNumber}0${bitIndex}`;
 
         await dbPool.query(

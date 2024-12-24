@@ -3,10 +3,14 @@ import { v4 as uuidv4 } from "uuid";
 
 interface AlarmValue {
   code: string;
-  alarm: string;
-  text: string;
+  alarm?: string;
+  type?: string;
+  text?: string;
+  name?: string;
   origin_date: string;
+  mode?: string;
 }
+
 interface AlarmMessage {
   type: string;
   ip_address: string;
@@ -31,69 +35,95 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
       return;
     }
 
-    switch (message.type) {
-      case "alarm":
-        insertQuery = `
-          INSERT INTO alarm (id, controller_id, code, alarm, text, origin_date)
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `;
-        selectQuery = `
-          SELECT 1 FROM alarm
-          WHERE controller_id = $1
-            AND code = $2
-            AND alarm = $3
-            AND text = $4
-            AND origin_date = $5
-          LIMIT 1
-        `;
-        break;
-      case "almhist":
-        insertQuery = `
-          INSERT INTO almhist (id, controller_id, code, alarm, text, origin_date)
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `;
-        selectQuery = `
-          SELECT 1 FROM almhist
-          WHERE controller_id = $1
-            AND code = $2
-            AND alarm = $3
-            AND text = $4
-            AND origin_date = $5
-          LIMIT 1
-        `;
-        break;
-
-      default:
-        console.error("Unknown alarm type:", message.type);
-        return;
+    if (message.type === "alarm") {
+      insertQuery = `
+        INSERT INTO alarm (id, controller_id, code, alarm, text, origin_date)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `;
+      selectQuery = `
+        SELECT 1 FROM alarm
+        WHERE controller_id = $1
+          AND code = $2
+          AND alarm = $3
+          AND text = $4
+          AND origin_date = $5
+        LIMIT 1
+      `;
+    } else if (message.type === "almhist") {
+      insertQuery = `
+        INSERT INTO almhist (id, controller_id, code, type, name, origin_date, mode)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `;
+      selectQuery = `
+        SELECT 1 FROM almhist
+        WHERE controller_id = $1
+          AND code = $2
+          AND type = $3
+          AND name = $4
+          AND origin_date = $5
+          AND mode = $6
+        LIMIT 1
+      `;
+    } else {
+      console.error("Unknown type:", message.type);
+      return;
     }
 
-    for (const { code, alarm, text, origin_date } of message.values) {
+    for (const value of message.values) {
       try {
-        const existingDataRes = await dbPool.query(selectQuery, [
-          controllerId,
-          code,
-          alarm,
-          text,
-          origin_date,
-        ]);
+        if (message.type === "alarm") {
+          const { code, alarm, text, origin_date } = value;
 
-        if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
-          console.log(
-            `Duplicate data found in ${message.type}. Skipping insertion.`
-          );
-          continue;
+          const existingDataRes = await dbPool.query(selectQuery, [
+            controllerId,
+            code,
+            alarm,
+            text,
+            origin_date,
+          ]);
+
+          if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
+            console.log(`Duplicate data found in alarm. Skipping insertion.`);
+            continue;
+          }
+
+          const generatedId = uuidv4();
+          await dbPool.query(insertQuery, [
+            generatedId,
+            controllerId,
+            code,
+            alarm,
+            text,
+            origin_date,
+          ]);
+        } else if (message.type === "almhist") {
+          const { code, type, name, origin_date, mode } = value;
+
+          const existingDataRes = await dbPool.query(selectQuery, [
+            controllerId,
+            code,
+            type,
+            name,
+            origin_date,
+            mode,
+          ]);
+
+          if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
+            console.log(`Duplicate data found in almhist. Skipping insertion.`);
+            continue;
+          }
+
+          const generatedId = uuidv4();
+          await dbPool.query(insertQuery, [
+            generatedId,
+            controllerId,
+            code,
+            type,
+            name,
+            origin_date,
+            mode,
+          ]);
         }
-
-        const generatedId = uuidv4();
-        await dbPool.query(insertQuery, [
-          generatedId,
-          controllerId,
-          code,
-          alarm,
-          text,
-          origin_date,
-        ]);
       } catch (error) {
         console.error(
           `Error inserting data for controller ${controllerId} in ${message.type}:`,
