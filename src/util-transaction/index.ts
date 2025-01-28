@@ -6,11 +6,9 @@ interface UtilizationValue {
   servo_power_time: number;
   playback_time: number;
   moving_time: number;
-  operating_time: number;
 }
 
 interface UtilizationMessage {
-  type: string;
   ip_address: string;
   values: UtilizationValue[];
 }
@@ -38,10 +36,9 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
         control_power_time, 
         servo_power_time, 
         playback_time, 
-        moving_time, 
-        operating_time
+        moving_time
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `;
 
     for (const value of message.values) {
@@ -51,7 +48,6 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
           servo_power_time,
           playback_time,
           moving_time,
-          operating_time,
         } = value;
 
         const generatedId = uuidv4();
@@ -62,7 +58,6 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
           servo_power_time,
           playback_time,
           moving_time,
-          operating_time,
         ]);
 
         console.log(
