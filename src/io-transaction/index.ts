@@ -27,7 +27,11 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
 
     for (const { byteNumber, bits } of message.values) {
       const signalRes = await dbPool.query(
-        `SELECT id FROM io_signal WHERE controller_id = $1 AND byte_number = $2`,
+        `SELECT io_signal.id 
+         FROM io_signal 
+         JOIN io_group ON io_signal.group_id = io_group.id 
+         WHERE io_group.controller_id = $1 
+         AND io_signal.byte_number = $2`,
         [controllerId, byteNumber]
       );
 
@@ -40,7 +44,6 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
 
       for (let bitIndex = 0; bitIndex < bits.length; bitIndex++) {
         const isActive = bits[bitIndex];
-
         const bitNumber = `#${byteNumber}0${bitIndex}`;
 
         await dbPool.query(
