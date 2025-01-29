@@ -23,7 +23,7 @@ wssMotocom.on("connection", (ws: WebSocket) => {
   }, 10000);
 
   ws.on("pong", () => {
-    console.log("Client pong received");
+    // console.log("Client pong received");
   });
 
   ws.on("ping", () => {
