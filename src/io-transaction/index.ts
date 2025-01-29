@@ -29,7 +29,8 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
     for (const { byteNumber, bits } of message.values) {
       try {
         const groupAndSignalRes = await dbPool.query(
-          `SELECT io_signal.id as signal_id, io_group.name as group_name, io_group.short_name as short_name, io_group.bit_type as bit_type 
+          `SELECT io_signal.id as signal_id, io_group.name as group_name, 
+           io_group.name as short_name, io_group.name as bit_type 
            FROM io_signal 
            JOIN io_group ON io_signal.group_id = io_group.id 
            WHERE io_group.controller_id = $1 
