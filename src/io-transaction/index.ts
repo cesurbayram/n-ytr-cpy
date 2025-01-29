@@ -19,18 +19,34 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
       [message.ip_address]
     );
 
-    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id;
-    } else {
+    if (!controllerDbRes.rowCount || controllerDbRes.rowCount === 0) {
       console.error("Controller not found for IP:", message.ip_address);
       return;
     }
 
+    controllerId = controllerDbRes.rows[0]?.id;
+
     for (const { byteNumber, bits } of message.values) {
       try {
         const groupAndSignalRes = await dbPool.query(
-          `SELECT io_signal.id as signal_id, io_group.name as group_name, 
-           io_group.name as short_name, io_group.name as bit_type 
+          `SELECT 
+            io_signal.id as signal_id, 
+            io_group.name as group_name,
+            CASE 
+              WHEN io_group.name = 'External Input' THEN 'EI I'
+              WHEN io_group.name = 'External Output' THEN 'EO O'
+              WHEN io_group.name = 'Universal Input' THEN 'UI I'
+              WHEN io_group.name = 'Universal Output' THEN 'UO O'
+              WHEN io_group.name = 'Specific Input' THEN 'SI I'
+              WHEN io_group.name = 'Specific Output' THEN 'SO O'
+              WHEN io_group.name = 'Interface Panel' THEN 'IP P'
+              WHEN io_group.name = 'Auxiliary Relay' THEN 'AR R'
+              WHEN io_group.name = 'Control Status' THEN 'CS S'
+              WHEN io_group.name = 'Pseudo Input' THEN 'PI I'
+              WHEN io_group.name = 'Network Input' THEN 'NI I'
+              WHEN io_group.name = 'Network Output' THEN 'NO O'
+              WHEN io_group.name = 'Registers' THEN 'R R'
+            END as type_code
            FROM io_signal 
            JOIN io_group ON io_signal.group_id = io_group.id 
            WHERE io_group.controller_id = $1 
@@ -38,29 +54,63 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
           [controllerId, byteNumber]
         );
 
-        if (groupAndSignalRes.rowCount === 0) {
+        if (!groupAndSignalRes.rowCount || groupAndSignalRes.rowCount === 0) {
           console.log(`No signal configuration found for byte: ${byteNumber}`);
           continue;
         }
 
-        const { signal_id, group_name, short_name, bit_type } =
-          groupAndSignalRes.rows[0];
+        const { signal_id, group_name, type_code } = groupAndSignalRes.rows[0];
 
         for (let bitIndex = 0; bitIndex < bits.length; bitIndex++) {
           const isActive = bits[bitIndex];
-          const formattedBitNumber = `#${byteNumber}${bitIndex} (${short_name} ${bit_type}${
+
+          const [shortName, bitType] = type_code.split(" ");
+          const formattedBitNumber = `#${byteNumber}${bitIndex} (${shortName} ${bitType}${
             bitIndex + 1
           })`;
 
-          await dbPool.query(
-            `UPDATE io_bit 
-             SET is_active = $1 
-             WHERE signal_id = $2 AND bit_number = $3`,
-            [isActive, signal_id, formattedBitNumber]
-          );
+          try {
+            const updateResult = await dbPool.query(
+              `UPDATE io_bit 
+               SET is_active = $1 
+               WHERE signal_id = $2 AND bit_number = $3
+               RETURNING *`,
+              [isActive, signal_id, formattedBitNumber]
+            );
+
+            if (
+              updateResult &&
+              updateResult.rowCount &&
+              updateResult.rowCount > 0
+            ) {
+              console.log(
+                `Updated bit ${formattedBitNumber} to ${isActive} for byte ${byteNumber}`
+              );
+            } else {
+              console.log(
+                `No matching bit found for ${formattedBitNumber} in byte ${byteNumber}`
+              );
+
+              const checkBits = await dbPool.query(
+                `SELECT bit_number FROM io_bit WHERE signal_id = $1`,
+                [signal_id]
+              );
+              if (checkBits && checkBits.rows) {
+                console.log(
+                  `Available bit_numbers for byte ${byteNumber}:`,
+                  checkBits.rows
+                );
+              }
+            }
+          } catch (updateError) {
+            console.error(
+              `Error updating bit ${formattedBitNumber}:`,
+              updateError
+            );
+          }
         }
 
-        console.log(`Updated bits for byte ${byteNumber} in ${group_name}`);
+        console.log(`Processed byte ${byteNumber} in ${group_name}`);
       } catch (error) {
         console.error(`Error processing byte ${byteNumber}:`, error);
       }
