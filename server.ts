@@ -4,7 +4,6 @@ import { messageQueue } from "./src/queue/message-queue";
 interface ParsedMessage {
   type: string;
   data: any;
-  ip_address: string;
 }
 
 const wssMotocom = new WebSocket.Server({ port: 8081 });
@@ -55,46 +54,10 @@ wssMotocom.on("connection", (ws: WebSocket) => {
 
       console.log("Received:", parsedMessage);
 
-      await messageQueue.addToQueue(
-        parsedMessage.type,
-        parsedMessage.data,
-        parsedMessage.ip_address
-      );
+      await messageQueue.addToQueue(parsedMessage.type, parsedMessage.data);
     } catch (err) {
       console.error("An error occurred while processing the message:", err);
     }
-  });
-});
-
-wssMotocom.on("listening", () => {
-  console.log("WebSocket server is running on port 8081");
-});
-
-wssMotocom.on("error", (error) => {
-  console.error("WebSocket server error:", error);
-});
-
-process.on("uncaughtException", (error) => {
-  console.error("Uncaught Exception:", error);
-});
-
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
-});
-
-process.on("SIGTERM", () => {
-  console.log("SIGTERM signal received. Closing WebSocket server...");
-  wssMotocom.close(() => {
-    console.log("WebSocket server closed");
-    process.exit(0);
-  });
-});
-
-process.on("SIGINT", () => {
-  console.log("SIGINT signal received. Closing WebSocket server...");
-  wssMotocom.close(() => {
-    console.log("WebSocket server closed");
-    process.exit(0);
   });
 });
 

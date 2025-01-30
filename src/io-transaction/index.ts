@@ -55,9 +55,6 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
         );
 
         if (!groupAndSignalRes.rowCount || groupAndSignalRes.rowCount === 0) {
-          console.error(
-            `No signal configuration found for byte: ${byteNumber}`
-          );
           continue;
         }
 
@@ -65,26 +62,18 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
 
         for (let bitIndex = 0; bitIndex < bits.length; bitIndex++) {
           const isActive = bits[bitIndex];
-
           const [shortName, bitType] = type_code.split(" ");
           const formattedBitNumber = `#${byteNumber}${bitIndex} (${shortName} ${bitType}${
             bitIndex + 1
           })`;
 
           try {
-            const updateResult = await dbPool.query(
+            await dbPool.query(
               `UPDATE io_bit 
                SET is_active = $1 
-               WHERE signal_id = $2 AND bit_number = $3
-               RETURNING *`,
+               WHERE signal_id = $2 AND bit_number = $3`,
               [isActive, signal_id, formattedBitNumber]
             );
-
-            if (!updateResult.rowCount || updateResult.rowCount === 0) {
-              console.error(
-                `Failed to update bit ${formattedBitNumber} for byte ${byteNumber}`
-              );
-            }
           } catch (updateError) {
             console.error(
               `Error updating bit ${formattedBitNumber}:`,

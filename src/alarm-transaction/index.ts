@@ -31,7 +31,10 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
     if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
       controllerId = controllerDbRes.rows[0]?.id;
     } else {
-      console.error("Controller not found for IP:", message.ip_address);
+      console.error(
+        "Controller not found for IP: alarm-trans",
+        message.ip_address
+      );
       return;
     }
 
