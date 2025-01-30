@@ -55,11 +55,13 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
         );
 
         if (!groupAndSignalRes.rowCount || groupAndSignalRes.rowCount === 0) {
-          console.log(`No signal configuration found for byte: ${byteNumber}`);
+          console.error(
+            `No signal configuration found for byte: ${byteNumber}`
+          );
           continue;
         }
 
-        const { signal_id, group_name, type_code } = groupAndSignalRes.rows[0];
+        const { signal_id, type_code } = groupAndSignalRes.rows[0];
 
         for (let bitIndex = 0; bitIndex < bits.length; bitIndex++) {
           const isActive = bits[bitIndex];
@@ -78,29 +80,10 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
               [isActive, signal_id, formattedBitNumber]
             );
 
-            if (
-              updateResult &&
-              updateResult.rowCount &&
-              updateResult.rowCount > 0
-            ) {
-              console.log(
-                `Updated bit ${formattedBitNumber} to ${isActive} for byte ${byteNumber}`
+            if (!updateResult.rowCount || updateResult.rowCount === 0) {
+              console.error(
+                `Failed to update bit ${formattedBitNumber} for byte ${byteNumber}`
               );
-            } else {
-              console.log(
-                `No matching bit found for ${formattedBitNumber} in byte ${byteNumber}`
-              );
-
-              const checkBits = await dbPool.query(
-                `SELECT bit_number FROM io_bit WHERE signal_id = $1`,
-                [signal_id]
-              );
-              if (checkBits && checkBits.rows) {
-                console.log(
-                  `Available bit_numbers for byte ${byteNumber}:`,
-                  checkBits.rows
-                );
-              }
             }
           } catch (updateError) {
             console.error(
@@ -109,14 +92,10 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
             );
           }
         }
-
-        console.log(`Processed byte ${byteNumber} in ${group_name}`);
       } catch (error) {
         console.error(`Error processing byte ${byteNumber}:`, error);
       }
     }
-
-    console.log("I/O data updated successfully");
   } catch (err) {
     console.error("An error occurred while processing I/O data:", err);
   }

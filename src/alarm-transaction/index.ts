@@ -65,7 +65,7 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
         LIMIT 1
       `;
     } else {
-      console.error("Unknown type:", message.type);
+      console.error("Unknown alarm type:", message.type);
       return;
     }
 
@@ -83,7 +83,6 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
           ]);
 
           if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
-            console.log(`Duplicate data found in alarm. Skipping insertion.`);
             continue;
           }
 
@@ -109,7 +108,6 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
           ]);
 
           if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
-            console.log(`Duplicate data found in almhist. Skipping insertion.`);
             continue;
           }
 
@@ -126,7 +124,7 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
         }
       } catch (error) {
         console.error(
-          `Error inserting data for controller ${controllerId} in ${message.type}:`,
+          `Error inserting ${message.type} data for controller ${controllerId}:`,
           error
         );
       }

@@ -61,8 +61,6 @@ const jobTransaction = async (message: JobMessage): Promise<void> => {
             current_line,
             existingJobRes.rows[0].id,
           ]);
-
-          console.log(`Updated current_line for job ${job_name}`);
         } else {
           const insertQuery = `
             INSERT INTO jobs (
@@ -83,8 +81,6 @@ const jobTransaction = async (message: JobMessage): Promise<void> => {
             current_line,
             job_content,
           ]);
-
-          console.log(`New job inserted: ${job_name}`);
         }
       } catch (error) {
         console.error(
