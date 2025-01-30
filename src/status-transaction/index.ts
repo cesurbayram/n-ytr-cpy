@@ -18,7 +18,7 @@ interface StatusMessage {
 
 const statusTransaction = async (message: StatusMessage): Promise<void> => {
   try {
-    let controllerId = '';
+    let controllerId = "";
 
     const controllerDbRes = await dbPool.query(
       `SELECT id FROM controller WHERE ip_address = $1`,
@@ -65,8 +65,6 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       console.error(
         "No rows updated. Ensure the ip_address and controller_id exist."
       );
-    } else {
-      console.log("Controller status updated successfully.");
     }
   } catch (err) {
     console.error("An error occurred while updating the database:", err);

@@ -1,14 +1,10 @@
 import WebSocket from "ws";
-import statusTransaction from "./src/status-transaction/index";
-import ioTransaction from "./src/io-transaction/index";
-import alarmTransaction from "./src/alarm-transaction/index";
-import variableTransaction from "./src/variable-transaction/index";
-import jobTransaction from "./src/job-transaction/index";
-import utilTransaction from "./src/util-transaction/index";
+import { messageQueue } from "./src/queue/message-queue";
 
 interface ParsedMessage {
   type: string;
   data: any;
+  ip_address: string;
 }
 
 const wssMotocom = new WebSocket.Server({ port: 8081 });
@@ -59,31 +55,47 @@ wssMotocom.on("connection", (ws: WebSocket) => {
 
       console.log("Received:", parsedMessage);
 
-      switch (parsedMessage.type) {
-        case "variable":
-          await variableTransaction(parsedMessage.data);
-          break;
-        case "io":
-          await ioTransaction(parsedMessage.data);
-          break;
-        case "alarm":
-          await alarmTransaction(parsedMessage.data);
-          break;
-        case "robotStatus":
-          await statusTransaction(parsedMessage.data);
-          break;
-        case "utilization":
-          await utilTransaction(parsedMessage.data);
-          break;
-        case "job":
-          await jobTransaction(parsedMessage.data);
-          break;
-        default:
-          console.log("Unknown message type:", parsedMessage.type);
-          return;
-      }
+      await messageQueue.addToQueue(
+        parsedMessage.type,
+        parsedMessage.data,
+        parsedMessage.ip_address
+      );
     } catch (err) {
       console.error("An error occurred while processing the message:", err);
     }
   });
 });
+
+wssMotocom.on("listening", () => {
+  console.log("WebSocket server is running on port 8081");
+});
+
+wssMotocom.on("error", (error) => {
+  console.error("WebSocket server error:", error);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("SIGTERM", () => {
+  console.log("SIGTERM signal received. Closing WebSocket server...");
+  wssMotocom.close(() => {
+    console.log("WebSocket server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT signal received. Closing WebSocket server...");
+  wssMotocom.close(() => {
+    console.log("WebSocket server closed");
+    process.exit(0);
+  });
+});
+
+export default wssMotocom;

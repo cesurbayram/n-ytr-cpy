@@ -59,10 +59,6 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
           playback_time,
           moving_time,
         ]);
-
-        console.log(
-          `Utilization data inserted successfully for controller ${controllerId}`
-        );
       } catch (error) {
         console.error(
           `Error inserting utilization data for controller ${controllerId}:`,
