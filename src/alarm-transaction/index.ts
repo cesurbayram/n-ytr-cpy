@@ -1,42 +1,26 @@
+// src/alarm-transaction/index.ts
 import dbPool from "../utils/db-util";
+import ControllerIdCache from "../utils/services/controller-cache";
 import { v4 as uuidv4 } from "uuid";
-
-interface AlarmValue {
-  code: string;
-  alarm?: string;
-  type?: string;
-  text?: string;
-  name?: string;
-  origin_date: string;
-  mode?: string;
-}
-
-interface AlarmMessage {
-  type: string;
-  ip_address: string;
-  values: AlarmValue[];
-}
+import { AlarmMessage } from "../types/alarm.types";
 
 const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
   try {
-    let controllerId = "";
-    let insertQuery = "";
-    let selectQuery = "";
-
-    const controllerDbRes = await dbPool.query(
-      `SELECT id FROM controller WHERE ip_address = $1`,
-      [message.ip_address]
+    let controllerId = await ControllerIdCache.getInstance().getControllerId(
+      message.ip_address,
+      dbPool
     );
 
-    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id;
-    } else {
+    if (!controllerId) {
       console.error(
         "Controller not found for IP: alarm-trans",
         message.ip_address
       );
       return;
     }
+
+    let insertQuery = "";
+    let selectQuery = "";
 
     if (message.type === "alarm") {
       insertQuery = `

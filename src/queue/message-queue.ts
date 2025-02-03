@@ -23,7 +23,6 @@ class MessageQueue {
 
   public async addToQueue(type: string, data: any) {
     try {
-      // Tüm mesaj tiplerini hemen işle
       switch (type) {
         case "robotStatus":
           await statusTransaction(data);

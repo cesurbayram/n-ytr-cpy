@@ -1,35 +1,24 @@
+// src/variable-transaction/index.ts
 import dbPool from "../utils/db-util";
-
-interface Value {
-  name: string;
-  no: number;
-  value: number;
-}
-interface Message {
-  type: string;
-  ip_address: string;
-  values: Value[];
-}
+import ControllerIdCache from "../utils/services/controller-cache";
+import { Message } from "../types/variable.types";
 
 const variableTransaction = async (message: Message): Promise<void> => {
   try {
-    let updateQuery = "";
-    let controllerId = "";
-
-    const controllerDbRes = await dbPool.query(
-      `SELECT id FROM controller WHERE ip_address = $1`,
-      [message.ip_address]
+    const controllerId = await ControllerIdCache.getInstance().getControllerId(
+      message.ip_address,
+      dbPool
     );
 
-    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id;
-    } else {
+    if (!controllerId) {
       console.error(
         "Controller not found for IP: var-trans",
         message.ip_address
       );
       return;
     }
+
+    let updateQuery = "";
 
     switch (message.type) {
       case "d_read":
