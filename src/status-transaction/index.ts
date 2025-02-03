@@ -1,33 +1,16 @@
+// src/status-transaction/index.ts
 import dbPool from "../utils/db-util";
-
-interface StatusValue {
-  teach?: "TEACH" | "PLAY" | "REMOTE";
-  servo?: boolean;
-  operating?: boolean;
-  cycle?: "CYCLE" | "STEP" | "AUTO";
-  hold?: boolean;
-  alarm?: boolean;
-  error?: boolean;
-  stop?: boolean;
-  door_opened?: boolean;
-}
-interface StatusMessage {
-  ip_address: string;
-  values: StatusValue;
-}
+import ControllerIdCache from "../utils/services/controller-cache";
+import { StatusMessage } from "../types/status.types";
 
 const statusTransaction = async (message: StatusMessage): Promise<void> => {
   try {
-    let controllerId = "";
-
-    const controllerDbRes = await dbPool.query(
-      `SELECT id FROM controller WHERE ip_address = $1`,
-      [message.ip_address]
+    const controllerId = await ControllerIdCache.getInstance().getControllerId(
+      message.ip_address,
+      dbPool
     );
 
-    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id;
-    } else {
+    if (!controllerId) {
       console.error(
         "Controller not found for IP: status-trans",
         message.ip_address
@@ -35,7 +18,9 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       return;
     }
 
-    const updateQuery = `
+    // Status güncelle
+    const result = await dbPool.query(
+      `
       UPDATE controller_status
       SET
         teach = $3,
@@ -48,21 +33,21 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
         stop = $10,
         door_opened = $11
       WHERE ip_address = $1 AND controller_id = $2;
-    `;
-
-    const result = await dbPool.query(updateQuery, [
-      message.ip_address,
-      controllerId,
-      message.values.teach,
-      message.values.servo,
-      message.values.operating,
-      message.values.cycle,
-      message.values.hold,
-      message.values.alarm,
-      message.values.error,
-      message.values.stop,
-      message.values.door_opened,
-    ]);
+    `,
+      [
+        message.ip_address,
+        controllerId,
+        message.values.teach,
+        message.values.servo,
+        message.values.operating,
+        message.values.cycle,
+        message.values.hold,
+        message.values.alarm,
+        message.values.error,
+        message.values.stop,
+        message.values.door_opened,
+      ]
+    );
 
     if (result.rowCount === 0) {
       console.error(

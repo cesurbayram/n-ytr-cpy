@@ -1,30 +1,17 @@
+// src/job-transaction/index.ts
 import dbPool from "../utils/db-util";
+import ControllerIdCache from "../utils/services/controller-cache";
 import { v4 as uuidv4 } from "uuid";
-
-interface JobValue {
-  job_name: string;
-  current_line: number;
-  job_content: string;
-}
-
-interface JobMessage {
-  type: string;
-  ip_address: string;
-  values: JobValue[];
-}
+import { JobMessage } from "../types/job.types";
 
 const jobTransaction = async (message: JobMessage): Promise<void> => {
   try {
-    let controllerId = "";
-
-    const controllerDbRes = await dbPool.query(
-      `SELECT id FROM controller WHERE ip_address = $1`,
-      [message.ip_address]
+    const controllerId = await ControllerIdCache.getInstance().getControllerId(
+      message.ip_address,
+      dbPool
     );
 
-    if (controllerDbRes.rowCount && controllerDbRes.rowCount > 0) {
-      controllerId = controllerDbRes.rows[0]?.id;
-    } else {
+    if (!controllerId) {
       console.error(
         "Controller not found for IP: job-trans",
         message.ip_address
