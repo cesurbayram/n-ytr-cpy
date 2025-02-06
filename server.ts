@@ -90,7 +90,7 @@ app.post(
         [controllerId]
       );
       const ipAddress = controllerDbRes?.rows[0]?.ip_address;
-      console.log("istek gelen ip", ipAddress);
+      console.log("client-side ip", ipAddress);
 
       if (!motocomWebSocket) {
         return res.status(503).send("Motocom is not connected");
@@ -110,6 +110,117 @@ app.post(
   }
 );
 
+app.post(
+  "/api/variable-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { activeVariable, controllerId } = req.body;
+      console.log("req.body", req.body);
+
+      if (!activeVariable || !controllerId) {
+        return res.status(400).send("Invalid request body");
+      }
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+      console.log("client-side ip", ipAddress);
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      motocomWebSocket.send(
+        JSON.stringify({ type: activeVariable, data: { ipAddress } })
+      );
+
+      return res.status(200).send("Message sent");
+    } catch (error) {
+      console.error("An error occurred while processing the request:", error);
+      return res
+        .status(500)
+        .send("An error occurred while processing the request");
+    }
+  }
+);
+
+app.post(
+  "/api/job-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { controllerId } = req.body;
+      console.log("req.body", req.body);
+
+      if (!controllerId) {
+        return res.status(400).send("Invalid request body");
+      }
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+      console.log("client-side ip", ipAddress);
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      motocomWebSocket.send(
+        JSON.stringify({ type: "job", data: { ipAddress } })
+      );
+
+      return res.status(200).send("Message sent");
+    } catch (error) {
+      console.error("An error occurred while processing the request:", error);
+      return res
+        .status(500)
+        .send("An error occurred while processing the request");
+    }
+  }
+);
+
+app.post("/api/tab-exit", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { exitedTab, controllerId } = req.body;
+    console.log("tab exit req.body", req.body);
+
+    if (!exitedTab || !controllerId) {
+      return res.status(400).send("Invalid request body");
+    }
+
+    const controllerDbRes = await dbPool.query(
+      `SELECT ip_address FROM controller WHERE id = $1`,
+      [controllerId]
+    );
+    const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+    console.log("client-side ip", ipAddress);
+
+    if (!motocomWebSocket) {
+      return res.status(503).send("Motocom is not connected");
+    }
+
+    motocomWebSocket.send(
+      JSON.stringify({
+        type: `${exitedTab}Exit`,
+        data: {
+          ipAddress,
+          exitedTab,
+        },
+      })
+    );
+
+    return res.status(200).send("Message sent");
+  } catch (error) {
+    console.error("An error occurred while processing the request:", error);
+    return res
+      .status(500)
+      .send("An error occurred while processing the request");
+  }
+});
+
 app.listen(port, () => {
-  console.log(`Express API çalışıyor: http://localhost:${port}`);
+  console.log(`Express API running: http://localhost:${port}`);
 });
