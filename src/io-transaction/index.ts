@@ -31,7 +31,7 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
               WHEN io_group.name = 'Universal Output' THEN 'UO O'
               WHEN io_group.name = 'Specific Input' THEN 'SI I'
               WHEN io_group.name = 'Specific Output' THEN 'SO O'
-              WHEN io_group.name = 'Interface Panel' THEN 'IP P'
+              /* WHEN io_group.name = 'Interface Panel' THEN 'IP P' */
               WHEN io_group.name = 'Auxiliary Relay' THEN 'AR R'
               WHEN io_group.name = 'Control Status' THEN 'CS S'
               WHEN io_group.name = 'Pseudo Input' THEN 'PI I'
