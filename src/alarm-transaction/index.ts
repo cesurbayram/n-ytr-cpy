@@ -21,20 +21,25 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
 
     let insertQuery = "";
     let selectQuery = "";
+    let updateQuery = "";
 
     if (message.type === "alarm") {
       insertQuery = `
-        INSERT INTO alarm (id, controller_id, code, alarm, text, origin_date)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO alarm (id, controller_id, code, alarm, text, origin_date, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
       `;
       selectQuery = `
-        SELECT 1 FROM alarm
+        SELECT id, origin_date, is_active FROM alarm
         WHERE controller_id = $1
           AND code = $2
-          AND alarm = $3
-          AND text = $4
-          AND origin_date = $5
+          AND text = $3
         LIMIT 1
+      `;
+      updateQuery = `
+        UPDATE alarm 
+        SET origin_date = $1, 
+            is_active = $2
+        WHERE id = $3
       `;
     } else if (message.type === "almhist") {
       insertQuery = `
@@ -59,17 +64,27 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
     for (const value of message.values) {
       try {
         if (message.type === "alarm") {
-          const { code, alarm, text, origin_date } = value;
+          const { code, alarm, text, origin_date, is_active } = value;
 
           const existingDataRes = await dbPool.query(selectQuery, [
             controllerId,
             code,
-            alarm,
             text,
-            origin_date,
           ]);
 
           if (existingDataRes.rowCount && existingDataRes.rowCount > 0) {
+            const existingAlarm = existingDataRes.rows[0];
+
+            if (
+              existingAlarm.origin_date !== origin_date ||
+              existingAlarm.is_active !== is_active
+            ) {
+              await dbPool.query(updateQuery, [
+                origin_date,
+                is_active,
+                existingAlarm.id,
+              ]);
+            }
             continue;
           }
 
@@ -81,6 +96,7 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
             alarm,
             text,
             origin_date,
+            is_active,
           ]);
         } else if (message.type === "almhist") {
           const { code, type, name, origin_date, mode } = value;

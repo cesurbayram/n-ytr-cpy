@@ -7,6 +7,7 @@ export interface AlarmValue {
   name?: string;
   origin_date: string;
   mode?: string;
+  is_active: boolean;
 }
 
 export interface AlarmMessage {
