@@ -31,13 +31,11 @@ const ioTransaction = async (message: IOMessage): Promise<void> => {
               WHEN io_group.name = 'Universal Output' THEN 'UO O'
               WHEN io_group.name = 'Specific Input' THEN 'SI I'
               WHEN io_group.name = 'Specific Output' THEN 'SO O'
-              /* WHEN io_group.name = 'Interface Panel' THEN 'IP P' */
               WHEN io_group.name = 'Auxiliary Relay' THEN 'AR R'
               WHEN io_group.name = 'Control Status' THEN 'CS S'
               WHEN io_group.name = 'Pseudo Input' THEN 'PI I'
               WHEN io_group.name = 'Network Input' THEN 'NI I'
               WHEN io_group.name = 'Network Output' THEN 'NO O'
-              WHEN io_group.name = 'Registers' THEN 'R R'
             END as type_code
            FROM io_signal 
            JOIN io_group ON io_signal.group_id = io_group.id 

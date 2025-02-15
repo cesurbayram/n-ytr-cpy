@@ -24,7 +24,7 @@ const jobTransaction = async (message: JobMessage): Promise<void> => {
         const { job_name, current_line, job_content } = value;
 
         const existingJobQuery = `
-          SELECT id FROM jobs 
+          SELECT id, job_content FROM jobs 
           WHERE controller_id = $1 
           AND job_name = $2 
           ORDER BY created_at DESC 
@@ -41,16 +41,31 @@ const jobTransaction = async (message: JobMessage): Promise<void> => {
           existingJobRes.rowCount > 0 &&
           existingJobRes.rows[0]?.id
         ) {
-          const updateQuery = `
-            UPDATE jobs 
-            SET current_line = $1 
-            WHERE id = $2
-          `;
+          if (existingJobRes.rows[0].job_content !== job_content) {
+            const updateQuery = `
+              UPDATE jobs 
+              SET current_line = $1,
+                  job_content = $2 
+              WHERE id = $3
+            `;
 
-          await dbPool.query(updateQuery, [
-            current_line,
-            existingJobRes.rows[0].id,
-          ]);
+            await dbPool.query(updateQuery, [
+              current_line,
+              job_content,
+              existingJobRes.rows[0].id,
+            ]);
+          } else {
+            const updateQuery = `
+              UPDATE jobs 
+              SET current_line = $1 
+              WHERE id = $2
+            `;
+
+            await dbPool.query(updateQuery, [
+              current_line,
+              existingJobRes.rows[0].id,
+            ]);
+          }
         } else {
           const insertQuery = `
             INSERT INTO jobs (
