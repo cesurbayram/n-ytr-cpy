@@ -66,9 +66,9 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
         if (message.type === "alarm") {
           const { code, alarm, text, origin_date, is_active } = value;
 
-          // if (!text || !origin_date || code === "0") {
-          //   continue;
-          // }
+          if (!text || !origin_date || code === "0") {
+            continue;
+          }
 
           // if (!text && !origin_date && code === "0") {
           //   continue;
