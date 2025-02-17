@@ -1,4 +1,3 @@
-// src/job-transaction/index.ts
 import dbPool from "../utils/db-util";
 import ControllerIdCache from "../utils/services/controller-cache";
 import { v4 as uuidv4 } from "uuid";
@@ -26,14 +25,12 @@ const jobTransaction = async (message: JobMessage): Promise<void> => {
         const existingJobQuery = `
           SELECT id, job_content FROM jobs 
           WHERE controller_id = $1 
-          AND job_name = $2 
           ORDER BY created_at DESC 
           LIMIT 1
         `;
 
         const existingJobRes = await dbPool.query(existingJobQuery, [
           controllerId,
-          job_name,
         ]);
 
         if (
@@ -45,24 +42,28 @@ const jobTransaction = async (message: JobMessage): Promise<void> => {
             const updateQuery = `
               UPDATE jobs 
               SET current_line = $1,
-                  job_content = $2 
-              WHERE id = $3
+                  job_content = $2,
+                  job_name = $3
+              WHERE id = $4
             `;
 
             await dbPool.query(updateQuery, [
               current_line,
               job_content,
+              job_name,
               existingJobRes.rows[0].id,
             ]);
           } else {
             const updateQuery = `
               UPDATE jobs 
-              SET current_line = $1 
-              WHERE id = $2
+              SET current_line = $1,
+                  job_name = $2
+              WHERE id = $3
             `;
 
             await dbPool.query(updateQuery, [
               current_line,
+              job_name,
               existingJobRes.rows[0].id,
             ]);
           }
