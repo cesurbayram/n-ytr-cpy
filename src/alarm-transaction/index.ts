@@ -25,8 +25,8 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
 
     if (message.type === "alarm") {
       insertQuery = `
-        INSERT INTO alarm (id, controller_id, code, alarm, text, origin_date, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO alarm (id, controller_id, code, alarm, text, origin_date, is_active, ip_address)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `;
       selectQuery = `
         SELECT id, origin_date, is_active FROM alarm
@@ -38,13 +38,14 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
       updateQuery = `
         UPDATE alarm 
         SET origin_date = $1, 
-            is_active = $2
-        WHERE id = $3
+            is_active = $2,
+            ip_address = $3
+        WHERE id = $4
       `;
     } else if (message.type === "almhist") {
       insertQuery = `
-        INSERT INTO almhist (id, controller_id, code, type, name, origin_date, mode)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO almhist (id, controller_id, code, type, name, origin_date, mode, ip_address)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `;
       selectQuery = `
         SELECT 1 FROM almhist
@@ -90,6 +91,7 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
               await dbPool.query(updateQuery, [
                 origin_date,
                 is_active,
+                message.ip_address,
                 existingAlarm.id,
               ]);
             }
@@ -105,6 +107,7 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
             text,
             origin_date,
             is_active,
+            message.ip_address,
           ]);
         } else if (message.type === "almhist") {
           const { code, type, name, origin_date, mode } = value;
@@ -131,6 +134,7 @@ const alarmTransaction = async (message: AlarmMessage): Promise<void> => {
             name,
             origin_date,
             mode,
+            message.ip_address,
           ]);
         }
       } catch (error) {
