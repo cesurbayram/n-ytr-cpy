@@ -9,6 +9,7 @@ export interface StatusValue {
   error?: boolean;
   stop?: boolean;
   door_opened?: boolean;
+  c_backup?: boolean;
 }
 
 export interface StatusMessage {

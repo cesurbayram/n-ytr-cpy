@@ -18,7 +18,27 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       return;
     }
 
-    // Status güncelle
+    if (
+      Object.keys(message.values).length === 1 &&
+      message.values.c_backup !== undefined
+    ) {
+      const result = await dbPool.query(
+        `
+        UPDATE controller_status
+        SET c_backup = $3
+        WHERE ip_address = $1 AND controller_id = $2;
+      `,
+        [message.ip_address, controllerId, message.values.c_backup]
+      );
+
+      if (result.rowCount === 0) {
+        console.error(
+          "No rows updated for c_backup. Ensure the ip_address and controller_id exist."
+        );
+      }
+      return;
+    }
+
     const result = await dbPool.query(
       `
       UPDATE controller_status
@@ -51,7 +71,7 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
 
     if (result.rowCount === 0) {
       console.error(
-        "No rows updated. Ensure the ip_address and controller_id exist."
+        "No rows updated for status values. Ensure the ip_address and controller_id exist."
       );
     }
   } catch (err) {
