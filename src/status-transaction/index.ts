@@ -38,6 +38,26 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       }
       return;
     }
+    if (
+      Object.keys(message.values).length === 1 &&
+      message.values.connection !== undefined
+    ) {
+      const result = await dbPool.query(
+        `
+        UPDATE controller_status
+        SET connection = $3
+        WHERE ip_address = $1 AND controller_id = $2;
+      `,
+        [message.ip_address, controllerId, message.values.connection]
+      );
+
+      if (result.rowCount === 0) {
+        console.error(
+          "No rows updated for connection. Ensure the ip_address and controller_id exist."
+        );
+      }
+      return;
+    }
 
     const result = await dbPool.query(
       `
