@@ -26,9 +26,10 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
         control_power_time, 
         servo_power_time, 
         playback_time, 
-        moving_time
+        moving_time,
+        ip_address
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
     `;
 
     for (const value of message.values) {
@@ -48,6 +49,7 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
           servo_power_time,
           playback_time,
           moving_time,
+          message.ip_address,
         ]);
       } catch (error) {
         console.error(
