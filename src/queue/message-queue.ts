@@ -4,6 +4,7 @@ import alarmTransaction from "../alarm-transaction";
 import variableTransaction from "../variable-transaction";
 import jobTransaction from "../job-transaction";
 import utilTransaction from "../util-transaction";
+import torkTransaction from "../tork-transaction";
 
 interface QueueItem {
   type: string;
@@ -18,6 +19,7 @@ class MessageQueue {
     robotStatus: [],
     utilization: [],
     job: [],
+    tork: [],
   };
   private processing: boolean = false;
 
@@ -41,6 +43,9 @@ class MessageQueue {
           break;
         case "job":
           await jobTransaction(data);
+          break;
+        case "tork":
+          await torkTransaction(data);
           break;
         default:
           console.error(`Unknown message type: ${type}`);
@@ -85,6 +90,9 @@ class MessageQueue {
                     break;
                   case "job":
                     await jobTransaction(item.data);
+                    break;
+                  case "tork":
+                    await torkTransaction(item.data);
                     break;
                 }
               } catch (error) {
