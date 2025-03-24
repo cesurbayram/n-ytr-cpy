@@ -183,6 +183,42 @@ app.post(
 );
 
 app.post(
+  "/api/absodata-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { controllerId } = req.body;
+      console.log("req.body", req.body);
+
+      if (!controllerId) {
+        return res.status(400).send("Invalid request body");
+      }
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+      console.log("client-side ip", ipAddress);
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      motocomWebSocket.send(
+        JSON.stringify({ type: "absoData", data: { ipAddress } })
+      );
+
+      return res.status(200).send("Message sent");
+    } catch (error) {
+      console.error("An error occurred while processing the request:", error);
+      return res
+        .status(500)
+        .send("An error occurred while processing the request");
+    }
+  }
+);
+
+app.post(
   "/api/job-socket",
   async (req: Request, res: Response): Promise<any> => {
     try {
