@@ -6,6 +6,7 @@ import jobTransaction from "../job-transaction";
 import utilTransaction from "../util-transaction";
 import torkTransaction from "../tork-transaction";
 import absoDataTransaction from "../absodata-transaction";
+import torkExaminationTransaction from "../torke-examination-transaction";
 
 interface QueueItem {
   type: string;
@@ -22,6 +23,7 @@ class MessageQueue {
     job: [],
     tork: [],
     absoData: [],
+    torkExam: [],
   };
   private processing: boolean = false;
 
@@ -51,6 +53,9 @@ class MessageQueue {
           break;
         case "absoData":
           await absoDataTransaction(data);
+          break;
+        case "torkExam":
+          await torkExaminationTransaction(data);
           break;
         default:
           console.error(`Unknown message type: ${type}`);
@@ -101,6 +106,9 @@ class MessageQueue {
                     break;
                   case "absoData":
                     await absoDataTransaction(item.data);
+                    break;
+                  case "torkExam":
+                    await torkExaminationTransaction(item.data);
                     break;
                 }
               } catch (error) {

@@ -293,6 +293,95 @@ app.post("/api/tab-exit", async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+app.post(
+  "/api/tork-examination-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { type, data } = req.body;
+
+      console.log(
+        "tork-examination req.body",
+        JSON.stringify(req.body, null, 2)
+      );
+
+      if (!data || !data.controllerId) {
+        return res.status(400).send("Invalid request body");
+      }
+
+      const { controllerId } = data;
+      const messageType = data.type;
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+      console.log("client-side ip", ipAddress);
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      interface ValueObject {
+        duration?: number;
+        jobName?: string;
+        signalNumbers?: string[];
+        JobName?: string;
+      }
+
+      let valueObject: ValueObject = {};
+
+      if (messageType === "Init") {
+        if (data.values && data.values[0] && data.values[0].duration) {
+          valueObject = {
+            duration: data.values[0].duration,
+          };
+        }
+      } else if (messageType === "JobSelect" && data.values?.[0]?.JobName) {
+        valueObject = {
+          JobName: data.values[0].JobName,
+        };
+        console.log(
+          "JobSelect values:",
+          JSON.stringify(data.values[0], null, 2)
+        );
+      } else if (messageType === "Start" && data.values?.[0]) {
+        const values = data.values[0];
+        console.log("Start values:", JSON.stringify(values, null, 2));
+
+        valueObject = {
+          duration: values.duration || 5,
+        };
+
+        if (values.jobName) valueObject.jobName = values.jobName;
+        else if (values.jobId) valueObject.jobName = values.jobId;
+
+        if (values.signalNumbers && Array.isArray(values.signalNumbers))
+          valueObject.signalNumbers = values.signalNumbers;
+      }
+
+      const wsMessage = {
+        type: "torkExam",
+        data: {
+          type: messageType,
+          ipAddress: ipAddress,
+          ...(messageType !== "Init" ? { values: [valueObject] } : {}),
+        },
+      };
+
+      console.log("Sending to WebSocket:", JSON.stringify(wsMessage, null, 2));
+      motocomWebSocket.send(JSON.stringify(wsMessage));
+
+      return res.status(200).send("Message sent");
+    } catch (error) {
+      console.error("An error occurred while processing the request:", error);
+      return res
+        .status(500)
+        .send("An error occurred while processing the request");
+    }
+  }
+);
+
 app.listen(port, () => {
   console.log(`Express API running: http://localhost:${port}`);
 });
