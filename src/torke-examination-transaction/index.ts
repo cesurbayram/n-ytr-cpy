@@ -1,23 +1,41 @@
 import dbPool from "../utils/db-util";
 import ControllerIdCache from "../utils/services/controller-cache";
 import { v4 as uuidv4 } from "uuid";
-import { TorkExamMessage } from "../types/tork-examination.types";
+import {
+  TorkExamMessage,
+  TorkExamSignalValue,
+  TorkExamDataValue,
+  TorkExamJobValue,
+  TorkExamJobListValue,
+  TorkExamInitValue,
+  TorkExamJobSelectValue,
+} from "../types/tork-examination.types";
 
 const torkExaminationTransaction = async (message: any): Promise<void> => {
   try {
     console.log("Received torkExam message:", JSON.stringify(message, null, 2));
 
-    if (!message) {
-      console.error("Message is null or undefined");
+    let messageData;
+    if (message.data) {
+      messageData = message.data;
+    } else if (message.type) {
+      messageData = message;
+    } else {
+      console.error("Message is null or undefined or missing data");
       return;
     }
 
-    if (!message.type || !message.ip_address) {
-      console.error("Message type or IP address is missing");
+    if (!messageData.type || !messageData.ip_address) {
+      console.error("Message data type or IP address is missing");
       return;
     }
 
-    const ipAddress = message.ip_address;
+    if (!messageData.values) {
+      console.error("Message values is missing");
+      return;
+    }
+
+    const ipAddress = messageData.ip_address;
     const controllerId = await ControllerIdCache.getInstance().getControllerId(
       ipAddress,
       dbPool
@@ -31,27 +49,63 @@ const torkExaminationTransaction = async (message: any): Promise<void> => {
       return;
     }
 
-    switch (message.type) {
+    switch (messageData.type) {
       case "ioBit":
-        await processSignals(message.values, controllerId, ipAddress);
+        await processSignals(
+          Array.isArray(messageData.values)
+            ? (messageData.values as TorkExamSignalValue[])
+            : ([messageData.values] as TorkExamSignalValue[]),
+          controllerId,
+          ipAddress
+        );
         break;
       case "tork":
-        await processTorkData(message.values, controllerId, ipAddress);
+        await processTorkData(
+          Array.isArray(messageData.values)
+            ? (messageData.values as TorkExamDataValue[])
+            : ([messageData.values] as TorkExamDataValue[]),
+          controllerId,
+          ipAddress
+        );
         break;
       case "job":
-        await processJobData(message.values, controllerId, ipAddress);
+        await processJobData(
+          Array.isArray(messageData.values)
+            ? (messageData.values as TorkExamJobValue[])
+            : ([messageData.values] as TorkExamJobValue[]),
+          controllerId,
+          ipAddress
+        );
         break;
       case "jobList":
-        await processJobList(message.values, controllerId, ipAddress);
+        await processJobList(
+          Array.isArray(messageData.values)
+            ? (messageData.values as TorkExamJobListValue[])
+            : ([messageData.values] as TorkExamJobListValue[]),
+          controllerId,
+          ipAddress
+        );
         break;
       case "Init":
-        await processInit(message.values, controllerId, ipAddress);
+        await processInit(
+          Array.isArray(messageData.values)
+            ? (messageData.values as TorkExamInitValue[])
+            : ([messageData.values] as TorkExamInitValue[]),
+          controllerId,
+          ipAddress
+        );
         break;
       case "JobSelect":
-        await processJobSelect(message.values, controllerId, ipAddress);
+        await processJobSelect(
+          Array.isArray(messageData.values)
+            ? (messageData.values as TorkExamJobSelectValue[])
+            : ([messageData.values] as TorkExamJobSelectValue[]),
+          controllerId,
+          ipAddress
+        );
         break;
       default:
-        console.error("Unknown tork examination data type:", message.type);
+        console.error("Unknown tork examination data type:", messageData.type);
     }
   } catch (err) {
     console.error(
@@ -62,11 +116,16 @@ const torkExaminationTransaction = async (message: any): Promise<void> => {
 };
 
 const processSignals = async (
-  values: any[],
+  values: TorkExamSignalValue[],
   controllerId: string,
   ipAddress: string
 ): Promise<void> => {
   try {
+    if (!Array.isArray(values)) {
+      console.error("Signal values is not an array:", values);
+      return;
+    }
+
     const updateQuery = `
       UPDATE tork_examination_signals 
       SET signal_state = $3, updated_at = CURRENT_TIMESTAMP, ip_address = $4
@@ -95,11 +154,16 @@ const processSignals = async (
 };
 
 const processTorkData = async (
-  values: any[],
+  values: TorkExamDataValue[],
   controllerId: string,
   ipAddress: string
 ): Promise<void> => {
   try {
+    if (!Array.isArray(values)) {
+      console.error("Tork data values is not an array:", values);
+      return;
+    }
+
     const sessionQuery = `
       SELECT id FROM tork_examination_sessions
       WHERE controller_id = $1
@@ -156,9 +220,9 @@ const processTorkData = async (
           value.R,
           value.B,
           value.T,
-          value.B1,
-          value.S1,
-          value.S2,
+          value.B1 || 0,
+          value.S1 || 0,
+          value.S2 || 0,
           controllerId,
           ipAddress,
         ]);
@@ -175,11 +239,16 @@ const processTorkData = async (
 };
 
 const processJobData = async (
-  values: any[],
+  values: TorkExamJobValue[],
   controllerId: string,
   ipAddress: string
 ): Promise<void> => {
   try {
+    if (!Array.isArray(values)) {
+      console.error("Job data values is not an array:", values);
+      return;
+    }
+
     const updateQuery = `
       UPDATE tork_examination_jobs 
       SET job_content = $3, current_line = $4, updated_at = CURRENT_TIMESTAMP, ip_address = $5
@@ -239,11 +308,16 @@ const processJobData = async (
 };
 
 const processJobList = async (
-  values: any[],
+  values: TorkExamJobListValue[],
   controllerId: string,
   ipAddress: string
 ): Promise<void> => {
   try {
+    if (!Array.isArray(values)) {
+      console.error("Job list values is not an array:", values);
+      return;
+    }
+
     const clearQuery = `
       DELETE FROM job_list
       WHERE controller_id = $1
@@ -257,14 +331,18 @@ const processJobList = async (
 
     for (const value of values) {
       try {
-        for (const jobName of value.jobList) {
-          const jobId = uuidv4();
-          await dbPool.query(insertQuery, [
-            jobId,
-            jobName,
-            controllerId,
-            ipAddress,
-          ]);
+        if (Array.isArray(value.jobList)) {
+          for (const jobName of value.jobList) {
+            const jobId = uuidv4();
+            await dbPool.query(insertQuery, [
+              jobId,
+              jobName,
+              controllerId,
+              ipAddress,
+            ]);
+          }
+        } else {
+          console.error("jobList is not an array:", value.jobList);
         }
       } catch (error) {
         console.error(
@@ -279,11 +357,16 @@ const processJobList = async (
 };
 
 const processInit = async (
-  values: any[],
+  values: TorkExamInitValue[],
   controllerId: string,
   ipAddress: string
 ): Promise<void> => {
   try {
+    if (!Array.isArray(values)) {
+      console.error("Init values is not an array:", values);
+      return;
+    }
+
     for (const value of values) {
       try {
         const now = new Date();
@@ -341,11 +424,16 @@ const processInit = async (
 };
 
 const processJobSelect = async (
-  values: any[],
+  values: TorkExamJobSelectValue[],
   controllerId: string,
   ipAddress: string
 ): Promise<void> => {
   try {
+    if (!Array.isArray(values)) {
+      console.error("Job select values is not an array:", values);
+      return;
+    }
+
     const resetQuery = `
       UPDATE job_list
       SET selected = false
@@ -365,6 +453,8 @@ const processJobSelect = async (
         if (jobName) {
           await dbPool.query(updateQuery, [controllerId, jobName, ipAddress]);
           console.log(`Job ${jobName} selected for controller ${controllerId}`);
+        } else {
+          console.error("JobName is missing in the value:", value);
         }
       } catch (error) {
         console.error(
