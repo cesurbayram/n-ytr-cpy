@@ -10,7 +10,7 @@ interface ParsedMessage {
   data: any;
 }
 
-const wssMotocom = new WebSocket.Server({ port: 8081 });
+const wssMotocom = new WebSocket.Server({ port: 4000 });
 let motocomWebSocket: WebSocket | null;
 
 wssMotocom.on("connection", (ws: WebSocket) => {
