@@ -383,6 +383,6 @@ app.post(
   }
 );
 
-app.listen(port, () => {
-  console.log(`Express API running: http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Express API running at http://0.0.0.0:${port}`);
 });
