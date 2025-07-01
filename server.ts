@@ -72,8 +72,17 @@ wssMotocom.on("connection", (ws: WebSocket) => {
 const app = express();
 const port = 8082;
 
+app.use(
+  cors({
+    origin: "https://savola.fabricademo.com",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true,
+  })
+);
+app.options("*", cors());
+
 app.use(bodyParser.json());
-app.use(cors<Request>());
 
 app.post(
   "/api/input-output-socket",
