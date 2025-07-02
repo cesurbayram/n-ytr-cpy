@@ -75,12 +75,11 @@ const port = 8082;
 app.use(
   cors({
     origin: "https://savola.fabricademo.com",
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
-app.options("*", cors());
 
 app.use(bodyParser.json());
 
