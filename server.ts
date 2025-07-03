@@ -4,6 +4,8 @@ import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
 import cors from "cors";
+import https from "https";
+import fs from "fs";
 
 interface ParsedMessage {
   type: string;
@@ -392,6 +394,11 @@ app.post(
   }
 );
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Express API running at http://0.0.0.0:${port}`);
+const options = {
+  key: fs.readFileSync("/etc/ssl/cloudflare/key.pem"),
+  cert: fs.readFileSync("/etc/ssl/cloudflare/cert.pem"),
+};
+
+https.createServer(options, app).listen(port, "0.0.0.0", () => {
+  console.log(`Express HTTPS API running at https://0.0.0.0:${port}`);
 });
