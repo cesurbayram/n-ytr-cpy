@@ -4,8 +4,6 @@ import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
 import cors from "cors";
-import https from "https";
-import fs from "fs";
 
 interface ParsedMessage {
   type: string;
@@ -76,11 +74,10 @@ const port = 8082;
 
 const corsOptions = {
   origin: "https://savola.fabricademo.com",
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  allowedHeaders: "Content-Type, Authorization, X-Requested-With",
 };
-
 app.use(cors(corsOptions));
 
 app.options("*", cors(corsOptions));
@@ -395,11 +392,6 @@ app.post(
   }
 );
 
-const options = {
-  key: fs.readFileSync("./ssl/key.pem"),
-  cert: fs.readFileSync("./ssl/cert.pem"),
-};
-
-https.createServer(options, app).listen(port, "0.0.0.0", () => {
-  console.log(`Express API running at ${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Express API running at http://0.0.0.0:${port}`);
 });
