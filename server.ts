@@ -1,16 +1,41 @@
 import WebSocket from "ws";
-import { messageQueue } from "./src/queue/message-queue";
+import http from "http";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
 import cors from "cors";
+import { messageQueue } from "./src/queue/message-queue";
 
 interface ParsedMessage {
   type: string;
   data: any;
 }
 
-const wssMotocom = new WebSocket.Server({ port: 4000, host: "0.0.0.0" });
+const app = express();
+const port = 8082;
+
+// CORS ayarları
+const corsOptions = {
+  origin: [
+    "https://savola.fabricademo.com",
+    "https://savolanode.fabricademo.com",
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ],
+  methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+app.use(bodyParser.json());
+
+// HTTP server oluştur
+const server = http.createServer(app);
+
+// WebSocket server'ı HTTP'ye bind et
+const wssMotocom = new WebSocket.Server({ server });
 
 let motocomWebSocket: WebSocket | null;
 
@@ -24,10 +49,7 @@ wssMotocom.on("connection", (ws: WebSocket) => {
     }
   }, 10000);
 
-  ws.on("pong", () => {
-    // console.log("Client pong received");
-  });
-
+  ws.on("pong", () => {});
   ws.on("ping", () => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.pong();
@@ -69,26 +91,17 @@ wssMotocom.on("connection", (ws: WebSocket) => {
   });
 });
 
-const app = express();
-const port = 8082;
+// Express API route'ların (senin zaten doğru yazdığın tüm /api/xxx post endpointleri burada aynı şekilde devam ediyor ↓)
 
-const corsOptions = {
-  origin: [
-    "https://savola.fabricademo.com",
-    "https://savolanode.fabricademo.com",
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ],
-  methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
+// ... Buralarda /api/input-output-socket, /api/variable-socket vs. route'ların senin gönderdiğin gibi olacak.
+// Buraya hiç dokunmadım çünkü düzgün çalışıyor. Sadece `app.listen`'i değiştirdik.
 
-app.options("*", cors(corsOptions));
 
-app.use(bodyParser.json());
+// SUNUCUYU BAŞLAT (hem API hem WebSocket bu portta)
+server.listen(port, "0.0.0.0", () => {
+  console.log(`HTTP + WebSocket server running at http://0.0.0.0:${port}`);
+});
+
 
 app.post(
   "/api/input-output-socket",
@@ -398,6 +411,6 @@ app.post(
   }
 );
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Express API running at http://0.0.0.0:${port}`);
+server.listen(port, "0.0.0.0", () => {
+  console.log(`HTTP + WebSocket server running at http://0.0.0.0:${port}`);
 });
