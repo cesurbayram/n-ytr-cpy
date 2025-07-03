@@ -73,10 +73,16 @@ const app = express();
 const port = 8082;
 
 const corsOptions = {
-  origin: "https://savola.fabricademo.com",
+  origin: [
+    "https://savola.fabricademo.com",
+    "https://savolanode.fabricademo.com",
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ],
   methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
