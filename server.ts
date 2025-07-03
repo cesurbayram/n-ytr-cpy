@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import http from "http";
 import { messageQueue } from "./src/queue/message-queue";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
@@ -9,8 +10,11 @@ interface ParsedMessage {
   type: string;
   data: any;
 }
-
-const wssMotocom = new WebSocket.Server({ port: 4000, host: "0.0.0.0" });
+const app = express();
+const port = 8082;
+const server = http.createServer(app);
+// const wssMotocom = new WebSocket.Server({ port: 4000, host: "0.0.0.0" });
+const wssMotocom = new WebSocket.Server({ server });
 
 let motocomWebSocket: WebSocket | null;
 
@@ -69,8 +73,7 @@ wssMotocom.on("connection", (ws: WebSocket) => {
   });
 });
 
-const app = express();
-const port = 8082;
+
 
 const corsOptions = {
   origin: [
@@ -398,6 +401,7 @@ app.post(
   }
 );
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Express API running at http://0.0.0.0:${port}`);
+
+server.listen(port, "0.0.0.0", () => {
+  console.log(`HTTP + WebSocket server running at http://0.0.0.0:${port}`);
 });
