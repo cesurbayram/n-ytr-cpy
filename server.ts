@@ -12,7 +12,7 @@ interface ParsedMessage {
 }
 
 const app = express();
-const port = 8082;
+const port = 4000;
 
 // CORS ayarları
 const corsOptions = {
