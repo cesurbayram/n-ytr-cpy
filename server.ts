@@ -5,7 +5,6 @@ import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
 import cors from "cors";
 
-
 interface ParsedMessage {
   type: string;
   data: any;
@@ -74,16 +73,10 @@ const app = express();
 const port = 8082;
 
 const corsOptions = {
-  origin: [
-    "https://savola.fabricademo.com",
-    "https://savolanode.fabricademo.com",
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ],
+  origin: "https://savola.fabricademo.com",
   methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
