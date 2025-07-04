@@ -5,70 +5,6 @@ import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
 import cors from "cors";
 
-interface ParsedMessage {
-  type: string;
-  data: any;
-}
-
-const wssMotocom = new WebSocket.Server({ port: 4000, host: "0.0.0.0" });
-
-let motocomWebSocket: WebSocket | null;
-
-wssMotocom.on("connection", (ws: WebSocket) => {
-  console.log("Motocom connected");
-  motocomWebSocket = ws;
-
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.ping();
-    }
-  }, 10000);
-
-  ws.on("pong", () => {
-    // console.log("Client pong received");
-  });
-
-  ws.on("ping", () => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.pong();
-    }
-  });
-
-  ws.on("close", () => {
-    console.log("Motocom disconnected");
-    motocomWebSocket = null;
-    clearInterval(pingInterval);
-  });
-
-  ws.on("error", (error) => {
-    console.error("WebSocket error:", error);
-  });
-
-  ws.on("message", async (message: string) => {
-    try {
-      const parsedMessage: ParsedMessage = JSON.parse(message);
-
-      if (!parsedMessage || !parsedMessage.type) {
-        console.log("Invalid message format:", message);
-        return;
-      }
-
-      if (parsedMessage.type === "ping") {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "pong" }));
-        }
-        return;
-      }
-
-      console.log("Received:", parsedMessage);
-
-      await messageQueue.addToQueue(parsedMessage.type, parsedMessage.data);
-    } catch (err) {
-      console.error("An error occurred while processing the message:", err);
-    }
-  });
-});
-
 const app = express();
 const port = 8082;
 
@@ -83,6 +19,11 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 app.use(bodyParser.json());
+
+interface ParsedMessage {
+  type: string;
+  data: any;
+}
 
 app.post(
   "/api/input-output-socket",
@@ -394,4 +335,68 @@ app.post(
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Express API running at http://0.0.0.0:${port}`);
+});
+
+interface ParsedMessage {
+  type: string;
+  data: any;
+}
+
+const wssMotocom = new WebSocket.Server({ port: 4000, host: "0.0.0.0" });
+
+let motocomWebSocket: WebSocket | null;
+
+wssMotocom.on("connection", (ws: WebSocket) => {
+  console.log("Motocom connected");
+  motocomWebSocket = ws;
+
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.ping();
+    }
+  }, 10000);
+
+  ws.on("pong", () => {
+    // console.log("Client pong received");
+  });
+
+  ws.on("ping", () => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.pong();
+    }
+  });
+
+  ws.on("close", () => {
+    console.log("Motocom disconnected");
+    motocomWebSocket = null;
+    clearInterval(pingInterval);
+  });
+
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
+  });
+
+  ws.on("message", async (message: string) => {
+    try {
+      const parsedMessage: ParsedMessage = JSON.parse(message);
+
+      if (!parsedMessage || !parsedMessage.type) {
+        console.log("Invalid message format:", message);
+        return;
+      }
+
+      if (parsedMessage.type === "ping") {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "pong" }));
+        }
+        return;
+      }
+
+      console.log("Received:", parsedMessage);
+
+      await messageQueue.addToQueue(parsedMessage.type, parsedMessage.data);
+    } catch (err) {
+      console.error("An error occurred while processing the message:", err);
+    }
+  });
 });
