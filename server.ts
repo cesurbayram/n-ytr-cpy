@@ -8,14 +8,7 @@ import cors from "cors";
 const app = express();
 const port = 8082;
 
-const corsOptions = {
-  origin: "https://savola-senddata.fabricademo.com",
-  methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-app.use(cors(corsOptions));
-
+app.use(cors({credentials: true, origin: true}))
 app.use(bodyParser.json());
 
 interface ParsedMessage {
