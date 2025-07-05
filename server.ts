@@ -3,18 +3,9 @@ import { messageQueue } from "./src/queue/message-queue";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
-import cors from "cors";
 
 const app = express();
 const port = 8082;
-
-const corsOptions = {
-  origin: "https://savola.fabricademo.com",
-  methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 
