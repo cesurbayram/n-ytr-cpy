@@ -9,7 +9,7 @@ const app = express();
 const port = 8082;
 
 const corsOptions = {
-  origin: "https://savola-senddata.fabricademo.com",
+  origin: "https://savola.fabricademo.com",
   methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
