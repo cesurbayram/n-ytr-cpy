@@ -324,185 +324,322 @@ app.post(
   }
 );
 
-app.get(
-  "/api/csharp/robots",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const robotsResult = await dbPool.query(`
-      SELECT id, ip_address, name, status 
-      FROM controller 
-      WHERE status = 'active'
-      ORDER BY name ASC
-    `);
+// app.get(
+//   "/api/csharp/robots",
+//   async (req: Request, res: Response): Promise<any> => {
+//     try {
+//       const robotsResult = await dbPool.query(`
+//       SELECT id, ip_address, name, status
+//       FROM controller
+//       WHERE status = 'active'
+//       ORDER BY name ASC
+//     `);
 
-      return res.status(200).json({
-        success: true,
-        data: robotsResult.rows,
-      });
-    } catch (error) {
-      console.error("Error fetching robots:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         data: robotsResult.rows,
+//       });
+//     } catch (error) {
+//       console.error("Error fetching robots:", error);
+//       return res.status(500).json({
+//         success: false,
+//         error: "Internal server error",
+//       });
+//     }
+//   }
+// );
 
-app.get(
-  "/api/csharp/alarms/:ipAddress",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { ipAddress } = req.params;
+// app.get(
+//   "/api/csharp/alarms/:ipAddress",
+//   async (req: Request, res: Response): Promise<any> => {
+//     try {
+//       const { ipAddress } = req.params;
 
-      const alarmsResult = await dbPool.query(
-        `
-      SELECT a.id, a.ip_address, a.code, a.alarm, a.text, a.origin_date, a.is_active 
-      FROM alarm a
-      INNER JOIN controller c ON a.controller_id = c.id 
-      WHERE c.ip_address = $1 AND a.is_active = true AND c.status = 'active'
-      ORDER BY a.origin_date DESC
-    `,
-        [ipAddress]
-      );
+//       const alarmsResult = await dbPool.query(
+//         `
+//       SELECT a.id, a.ip_address, a.code, a.alarm, a.text, a.origin_date, a.is_active
+//       FROM alarm a
+//       INNER JOIN controller c ON a.controller_id = c.id
+//       WHERE c.ip_address = $1 AND a.is_active = true AND c.status = 'active'
+//       ORDER BY a.origin_date DESC
+//     `,
+//         [ipAddress]
+//       );
 
-      return res.status(200).json({
-        success: true,
-        data: alarmsResult.rows,
-      });
-    } catch (error) {
-      console.error("Error fetching alarms:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         data: alarmsResult.rows,
+//       });
+//     } catch (error) {
+//       console.error("Error fetching alarms:", error);
+//       return res.status(500).json({
+//         success: false,
+//         error: "Internal server error",
+//       });
+//     }
+//   }
+// );
 
-app.get(
-  "/api/csharp/status/:ipAddress",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { ipAddress } = req.params;
+// app.get(
+//   "/api/csharp/status/:ipAddress",
+//   async (req: Request, res: Response): Promise<any> => {
+//     try {
+//       const { ipAddress } = req.params;
 
-      const statusResult = await dbPool.query(
-        `
-      SELECT cs.id, cs.ip_address, cs.connection
-      FROM controller_status cs
-      INNER JOIN controller c ON cs.controller_id = c.id 
-      WHERE c.ip_address = $1 AND c.status = 'active'
-    `,
-        [ipAddress]
-      );
+//       const statusResult = await dbPool.query(
+//         `
+//       SELECT cs.id, cs.ip_address, cs.connection
+//       FROM controller_status cs
+//       INNER JOIN controller c ON cs.controller_id = c.id
+//       WHERE c.ip_address = $1 AND c.status = 'active'
+//     `,
+//         [ipAddress]
+//       );
 
-      return res.status(200).json({
-        success: true,
-        data: statusResult.rows,
-      });
-    } catch (error) {
-      console.error("Error fetching status:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         data: statusResult.rows,
+//       });
+//     } catch (error) {
+//       console.error("Error fetching status:", error);
+//       return res.status(500).json({
+//         success: false,
+//         error: "Internal server error",
+//       });
+//     }
+//   }
+// );
 
-app.get(
-  "/api/csharp/utilization/:ipAddress",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { ipAddress } = req.params;
+// app.get(
+//   "/api/csharp/utilization/:ipAddress",
+//   async (req: Request, res: Response): Promise<any> => {
+//     try {
+//       const { ipAddress } = req.params;
 
-      const latestTimestampResult = await dbPool.query(
-        `
-      SELECT MAX(ud.timestamp) as latest_timestamp 
-      FROM utilization_data ud
-      INNER JOIN controller c ON ud.controller_id = c.id 
-      WHERE c.ip_address = $1 AND c.status = 'active'
-    `,
-        [ipAddress]
-      );
+//       const latestTimestampResult = await dbPool.query(
+//         `
+//       SELECT MAX(ud.timestamp) as latest_timestamp
+//       FROM utilization_data ud
+//       INNER JOIN controller c ON ud.controller_id = c.id
+//       WHERE c.ip_address = $1 AND c.status = 'active'
+//     `,
+//         [ipAddress]
+//       );
 
-      const latestTimestamp = latestTimestampResult.rows[0]?.latest_timestamp;
+//       const latestTimestamp = latestTimestampResult.rows[0]?.latest_timestamp;
 
-      if (!latestTimestamp) {
-        return res.status(200).json({
-          success: true,
-          data: {
+//       if (!latestTimestamp) {
+//         return res.status(200).json({
+//           success: true,
+//           data: {
+//             id: null,
+//             controller_id: null,
+//             ip_address: ipAddress,
+//             control_power_time: 0,
+//             servo_power_time: 0,
+//             playback_time: 0,
+//             moving_time: 0,
+//             timestamp: null,
+//           },
+//         });
+//       }
+
+//       const utilizationResult = await dbPool.query(
+//         `
+//       SELECT ud.id, ud.controller_id, c.ip_address, ud.control_power_time, ud.servo_power_time,
+//              ud.playback_time, ud.moving_time, ud.timestamp
+//       FROM utilization_data ud
+//       INNER JOIN controller c ON ud.controller_id = c.id
+//       WHERE c.ip_address = $1 AND ud.timestamp = $2 AND c.status = 'active'
+//     `,
+//         [ipAddress, latestTimestamp]
+//       );
+
+//       const utilizationData = utilizationResult.rows[0] || {
+//         id: null,
+//         controller_id: null,
+//         ip_address: ipAddress,
+//         control_power_time: 0,
+//         servo_power_time: 0,
+//         playback_time: 0,
+//         moving_time: 0,
+//         timestamp: null,
+//       };
+
+//       return res.status(200).json({
+//         success: true,
+//         data: utilizationData,
+//       });
+//     } catch (error) {
+//       console.error("Error fetching utilization:", error);
+//       return res.status(500).json({
+//         success: false,
+//         error: "Internal server error",
+//       });
+//     }
+//   }
+// );
+
+// app.get(
+//   "/api/csharp/backup-schedules",
+//   async (req: Request, res: Response): Promise<any> => {
+//     try {
+//       const backupResult = await dbPool.query(`
+//       SELECT * FROM backup_plans
+//       WHERE is_active = true
+//       ORDER BY time ASC
+//     `);
+
+//       return res.status(200).json({
+//         success: true,
+//         data: backupResult.rows,
+//       });
+//     } catch (error) {
+//       console.error("Error fetching backup schedules:", error);
+//       return res.status(500).json({
+//         success: false,
+//         error: "Internal server error",
+//       });
+//     }
+//   }
+// );
+
+async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
+  try {
+    let result;
+
+    switch (parsedMessage.type) {
+      case "api_getRobots":
+        const robotsResult = await dbPool.query(`
+          SELECT id, ip_address, name, status 
+          FROM controller 
+          WHERE status = 'active'
+          ORDER BY name ASC
+        `);
+        result = { success: true, data: robotsResult.rows };
+        break;
+
+      case "api_getAlarms":
+        const { ipAddress: alarmIp } = parsedMessage.data;
+        const alarmsResult = await dbPool.query(
+          `
+          SELECT a.id, a.ip_address, a.code, a.alarm, a.text, a.origin_date, a.is_active 
+          FROM alarm a
+          INNER JOIN controller c ON a.controller_id = c.id 
+          WHERE c.ip_address = $1 AND a.is_active = true AND c.status = 'active'
+          ORDER BY a.origin_date DESC
+        `,
+          [alarmIp]
+        );
+        result = { success: true, data: alarmsResult.rows };
+        break;
+
+      case "api_getStatus":
+        const { ipAddress: statusIp } = parsedMessage.data;
+        const statusResult = await dbPool.query(
+          `
+          SELECT cs.id, cs.ip_address, cs.connection
+          FROM controller_status cs
+          INNER JOIN controller c ON cs.controller_id = c.id 
+          WHERE c.ip_address = $1 AND c.status = 'active'
+        `,
+          [statusIp]
+        );
+        result = { success: true, data: statusResult.rows };
+        break;
+
+      case "api_getUtilization":
+        const { ipAddress: utilIp } = parsedMessage.data;
+        const latestTimestampResult = await dbPool.query(
+          `
+          SELECT MAX(ud.timestamp) as latest_timestamp 
+          FROM utilization_data ud
+          INNER JOIN controller c ON ud.controller_id = c.id 
+          WHERE c.ip_address = $1 AND c.status = 'active'
+        `,
+          [utilIp]
+        );
+
+        const latestTimestamp = latestTimestampResult.rows[0]?.latest_timestamp;
+
+        if (!latestTimestamp) {
+          result = {
+            success: true,
+            data: {
+              id: null,
+              controller_id: null,
+              ip_address: utilIp,
+              control_power_time: 0,
+              servo_power_time: 0,
+              playback_time: 0,
+              moving_time: 0,
+              timestamp: null,
+            },
+          };
+        } else {
+          const utilizationResult = await dbPool.query(
+            `
+            SELECT ud.id, ud.controller_id, c.ip_address, ud.control_power_time, ud.servo_power_time, 
+                   ud.playback_time, ud.moving_time, ud.timestamp 
+            FROM utilization_data ud
+            INNER JOIN controller c ON ud.controller_id = c.id 
+            WHERE c.ip_address = $1 AND ud.timestamp = $2 AND c.status = 'active'
+          `,
+            [utilIp, latestTimestamp]
+          );
+
+          const utilizationData = utilizationResult.rows[0] || {
             id: null,
             controller_id: null,
-            ip_address: ipAddress,
+            ip_address: utilIp,
             control_power_time: 0,
             servo_power_time: 0,
             playback_time: 0,
             moving_time: 0,
             timestamp: null,
-          },
-        });
-      }
+          };
+          result = { success: true, data: utilizationData };
+        }
+        break;
 
-      const utilizationResult = await dbPool.query(
-        `
-      SELECT ud.id, ud.controller_id, c.ip_address, ud.control_power_time, ud.servo_power_time, 
-             ud.playback_time, ud.moving_time, ud.timestamp 
-      FROM utilization_data ud
-      INNER JOIN controller c ON ud.controller_id = c.id 
-      WHERE c.ip_address = $1 AND ud.timestamp = $2 AND c.status = 'active'
-    `,
-        [ipAddress, latestTimestamp]
+      case "api_getBackupSchedules":
+        const backupResult = await dbPool.query(`
+          SELECT * FROM backup_plans 
+          WHERE is_active = true
+          ORDER BY time ASC
+        `);
+        result = { success: true, data: backupResult.rows };
+        break;
+
+      default:
+        result = { success: false, error: "Unknown API request" };
+    }
+
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          type: "api_response",
+          requestType: parsedMessage.type,
+          requestId: parsedMessage.data?.requestId,
+          result: result,
+        })
       );
-
-      const utilizationData = utilizationResult.rows[0] || {
-        id: null,
-        controller_id: null,
-        ip_address: ipAddress,
-        control_power_time: 0,
-        servo_power_time: 0,
-        playback_time: 0,
-        moving_time: 0,
-        timestamp: null,
-      };
-
-      return res.status(200).json({
-        success: true,
-        data: utilizationData,
-      });
-    } catch (error) {
-      console.error("Error fetching utilization:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
+    }
+  } catch (error) {
+    console.error("API request error:", error);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          type: "api_response",
+          requestType: parsedMessage.type,
+          requestId: parsedMessage.data?.requestId,
+          result: { success: false, error: "Internal server error" },
+        })
+      );
     }
   }
-);
+}
 
-app.get(
-  "/api/csharp/backup-schedules",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const backupResult = await dbPool.query(`
-      SELECT * FROM backup_plans 
-      WHERE is_active = true
-      ORDER BY time ASC
-    `);
-
-      return res.status(200).json({
-        success: true,
-        data: backupResult.rows,
-      });
-    } catch (error) {
-      console.error("Error fetching backup schedules:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Internal server error",
-      });
-    }
-  }
-);
 app.listen(port, "0.0.0.0", () => {
   console.log(`Express API running at http://0.0.0.0:${port}`);
 });
@@ -563,6 +700,11 @@ wssMotocom.on("connection", (ws: WebSocket) => {
       }
 
       console.log("Received:", parsedMessage);
+
+      if (parsedMessage.type.startsWith("api_")) {
+        await handleApiRequest(ws, parsedMessage);
+        return;
+      }
 
       await messageQueue.addToQueue(parsedMessage.type, parsedMessage.data);
     } catch (err) {
