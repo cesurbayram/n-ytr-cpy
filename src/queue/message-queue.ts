@@ -3,6 +3,7 @@ import ioTransaction from "../io-transaction";
 import alarmTransaction from "../alarm-transaction";
 import variableTransaction from "../variable-transaction";
 import jobTransaction from "../job-transaction";
+import jobSelectTransaction from "../job-select-transaction";
 import utilTransaction from "../util-transaction";
 import torkTransaction from "../tork-transaction";
 import absoDataTransaction from "../absodata-transaction";
@@ -21,6 +22,7 @@ class MessageQueue {
     robotStatus: [],
     utilization: [],
     job: [],
+    jobSelect: [],
     tork: [],
     absoData: [],
     torkExam: [],
@@ -47,6 +49,9 @@ class MessageQueue {
           break;
         case "job":
           await jobTransaction(data);
+          break;
+        case "jobSelect":
+          await jobSelectTransaction(data);
           break;
         case "tork":
           await torkTransaction(data);
@@ -100,6 +105,9 @@ class MessageQueue {
                     break;
                   case "job":
                     await jobTransaction(item.data);
+                    break;
+                  case "jobSelect":
+                    await jobSelectTransaction(item.data);
                     break;
                   case "tork":
                     await torkTransaction(item.data);

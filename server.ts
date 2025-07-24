@@ -3,12 +3,12 @@ import { messageQueue } from "./src/queue/message-queue";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
-import cors from "cors";
+// import cors from "cors";
 
 const app = express();
 const port = 8082;
 
-app.use(cors({ credentials: true, origin: true }));
+// app.use(cors({ credentials: true, origin: true }));
 app.use(bodyParser.json());
 
 interface ParsedMessage {
@@ -234,6 +234,59 @@ app.post("/api/tab-exit", async (req: Request, res: Response): Promise<any> => {
       .send("An error occurred while processing the request");
   }
 });
+
+app.post(
+  "/api/job-select-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { type, data } = req.body;
+
+      console.log("job-select req.body", JSON.stringify(req.body, null, 2));
+
+      if (!data || !data.controllerId) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+
+      const { controllerId, shiftId, type: messageType } = data;
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+
+      if (!ipAddress) {
+        return res.status(404).json({ error: "Controller not found" });
+      }
+
+      console.log("client-side ip", ipAddress);
+
+      if (!motocomWebSocket) {
+        return res.status(503).json({ error: "Motocom is not connected" });
+      }
+
+      const wsMessage = {
+        type: "jobSelect",
+        data: {
+          type: messageType,
+          ipAddress: ipAddress,
+          controllerId: controllerId,
+          shiftId: shiftId,
+        },
+      };
+
+      console.log("Sending to WebSocket:", JSON.stringify(wsMessage, null, 2));
+      motocomWebSocket.send(JSON.stringify(wsMessage));
+
+      return res.status(200).json({ success: true, message: "Message sent" });
+    } catch (error) {
+      console.error("An error occurred while processing the request:", error);
+      return res
+        .status(500)
+        .json({ error: "An error occurred while processing the request" });
+    }
+  }
+);
 
 app.post(
   "/api/tork-examination-socket",
