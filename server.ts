@@ -270,8 +270,6 @@ app.post(
         data: {
           type: messageType,
           ipAddress: ipAddress,
-          controllerId: controllerId,
-          shiftId: shiftId,
         },
       };
 
