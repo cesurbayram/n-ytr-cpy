@@ -161,6 +161,45 @@ app.post(
 );
 
 app.post(
+  "/api/register-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { controllerId } = req.body;
+      console.log("register-socket req.body", req.body);
+
+      if (!controllerId) {
+        return res.status(400).send("Invalid request body");
+      }
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+      console.log("register-socket client-side ip", ipAddress);
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      motocomWebSocket.send(
+        JSON.stringify({ type: "register", data: { ipAddress } })
+      );
+
+      return res.status(200).send("Register monitoring started");
+    } catch (error) {
+      console.error(
+        "An error occurred while processing register request:",
+        error
+      );
+      return res
+        .status(500)
+        .send("An error occurred while processing the request");
+    }
+  }
+);
+
+app.post(
   "/api/job-socket",
   async (req: Request, res: Response): Promise<any> => {
     try {
