@@ -128,7 +128,7 @@ const processSignals = async (
 
     const updateQuery = `
       UPDATE tork_examination_signals 
-      SET signal_state = $3, updated_at = CURRENT_TIMESTAMP, ip_address = $4
+      SET signal_state = $3, updated_at = CURRENT_TIMESTAMP
       WHERE controller_id = $1 AND signal_number = $2
     `;
 
@@ -139,7 +139,6 @@ const processSignals = async (
           controllerId,
           signalNumber,
           value.isActive,
-          ipAddress,
         ]);
       } catch (error) {
         console.error(
@@ -184,8 +183,8 @@ const processTorkData = async (
       const newSessionId = uuidv4();
       const createSessionQuery = `
         INSERT INTO tork_examination_sessions 
-        (id, start_date, start_time, duration, end_date, end_time, controller_id, ip_address)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (id, start_date, start_time, duration, end_date, end_time, controller_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
       `;
 
       await dbPool.query(createSessionQuery, [
@@ -196,7 +195,6 @@ const processTorkData = async (
         startDate,
         startTime,
         controllerId,
-        ipAddress,
       ]);
 
       sessionId = newSessionId;
@@ -204,8 +202,8 @@ const processTorkData = async (
 
     const insertTorkDataQuery = `
       INSERT INTO tork_examination_data 
-      (id, session_id, "S", "L", "U", "R", "B", "T", "B1", "S1", "S2", controller_id, ip_address)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      (id, session_id, "S", "L", "U", "R", "B", "T", "B1", "S1", "S2", controller_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `;
 
     for (const value of values) {
@@ -224,7 +222,6 @@ const processTorkData = async (
           value.S1 || 0,
           value.S2 || 0,
           controllerId,
-          ipAddress,
         ]);
       } catch (error) {
         console.error(
@@ -251,14 +248,14 @@ const processJobData = async (
 
     const updateQuery = `
       UPDATE tork_examination_jobs 
-      SET job_content = $3, current_line = $4, updated_at = CURRENT_TIMESTAMP, ip_address = $5
+      SET job_content = $3, current_line = $4, updated_at = CURRENT_TIMESTAMP
       WHERE controller_id = $1 AND name = $2
     `;
 
     const insertQuery = `
       INSERT INTO tork_examination_jobs 
-      (id, name, job_content, current_line, controller_id, updated_at, ip_address)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6)
+      (id, name, job_content, current_line, controller_id, updated_at)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
     `;
 
     const checkQuery = `
@@ -282,7 +279,6 @@ const processJobData = async (
             value.job_name,
             value.job_content,
             currentLine,
-            ipAddress,
           ]);
         } else {
           const jobId = uuidv4();
@@ -292,7 +288,6 @@ const processJobData = async (
             value.job_content,
             currentLine,
             controllerId,
-            ipAddress,
           ]);
         }
       } catch (error) {
@@ -325,8 +320,8 @@ const processJobList = async (
     await dbPool.query(clearQuery, [controllerId]);
 
     const insertQuery = `
-      INSERT INTO job_list (id, job_name, controller_id, ip_address)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO job_list (id, job_name, controller_id)
+      VALUES ($1, $2, $3)
     `;
 
     for (const value of values) {
@@ -334,12 +329,7 @@ const processJobList = async (
         if (Array.isArray(value.jobList)) {
           for (const jobName of value.jobList) {
             const jobId = uuidv4();
-            await dbPool.query(insertQuery, [
-              jobId,
-              jobName,
-              controllerId,
-              ipAddress,
-            ]);
+            await dbPool.query(insertQuery, [jobId, jobName, controllerId]);
           }
         } else {
           console.error("jobList is not an array:", value.jobList);
@@ -393,10 +383,10 @@ const processInit = async (
 
         const sessionId = uuidv4();
         const createSessionQuery = `
-          INSERT INTO tork_examination_sessions 
-          (id, start_date, start_time, duration, end_date, end_time, job_id, controller_id, ip_address)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        `;
+        INSERT INTO tork_examination_sessions 
+        (id, start_date, start_time, duration, end_date, end_time, job_id, controller_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `;
 
         await dbPool.query(createSessionQuery, [
           sessionId,
@@ -407,7 +397,6 @@ const processInit = async (
           startTime,
           jobId,
           controllerId,
-          ipAddress,
         ]);
 
         console.log(`New tork examination session created: ${sessionId}`);
@@ -443,7 +432,7 @@ const processJobSelect = async (
 
     const updateQuery = `
       UPDATE job_list
-      SET selected = true, updated_at = CURRENT_TIMESTAMP, ip_address = $3
+      SET selected = true, updated_at = CURRENT_TIMESTAMP
       WHERE controller_id = $1 AND job_name = $2
     `;
 
@@ -451,7 +440,7 @@ const processJobSelect = async (
       try {
         const jobName = value.JobName;
         if (jobName) {
-          await dbPool.query(updateQuery, [controllerId, jobName, ipAddress]);
+          await dbPool.query(updateQuery, [controllerId, jobName]);
           console.log(`Job ${jobName} selected for controller ${controllerId}`);
         } else {
           console.error("JobName is missing in the value:", value);

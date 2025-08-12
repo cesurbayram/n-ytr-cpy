@@ -19,15 +19,10 @@ const registerTransaction = async (message: RegisterMessage): Promise<void> => {
       return;
     }
 
-    const updateQuery = `UPDATE register SET register_value = $2, ip_address = $3 WHERE controller_id = $1 AND register_no = $4`;
+    const updateQuery = `UPDATE register SET register_value = $2 WHERE controller_id = $1 AND register_no = $3`;
 
     for (const { no, value } of message.values) {
-      await dbPool.query(updateQuery, [
-        controllerId,
-        value,
-        message.ip_address,
-        no,
-      ]);
+      await dbPool.query(updateQuery, [controllerId, value, no]);
     }
   } catch (err) {
     console.error("An error occurred while processing register data:", err);

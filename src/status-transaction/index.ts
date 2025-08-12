@@ -25,10 +25,10 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       const result = await dbPool.query(
         `
         UPDATE controller_status
-        SET c_backup = $3
-        WHERE ip_address = $1 AND controller_id = $2;
+        SET c_backup = $2
+        WHERE controller_id = $1;
       `,
-        [message.ip_address, controllerId, message.values.c_backup]
+        [controllerId, message.values.c_backup]
       );
 
       if (result.rowCount === 0) {
@@ -45,10 +45,10 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       const result = await dbPool.query(
         `
         UPDATE controller_status
-        SET connection = $3
-        WHERE ip_address = $1 AND controller_id = $2;
+        SET connection = $2
+        WHERE controller_id = $1;
       `,
-        [message.ip_address, controllerId, message.values.connection]
+        [controllerId, message.values.connection]
       );
 
       if (result.rowCount === 0) {
@@ -63,19 +63,18 @@ const statusTransaction = async (message: StatusMessage): Promise<void> => {
       `
       UPDATE controller_status
       SET
-        teach = $3,
-        servo = $4,
-        operating = $5,
-        cycle = $6,
-        hold = $7,
-        alarm = $8,
-        error = $9,
-        stop = $10,
-        door_opened = $11
-      WHERE ip_address = $1 AND controller_id = $2;
+        teach = $2,
+        servo = $3,
+        operating = $4,
+        cycle = $5,
+        hold = $6,
+        alarm = $7,
+        error = $8,
+        stop = $9,
+        door_opened = $10
+      WHERE controller_id = $1;
     `,
       [
-        message.ip_address,
         controllerId,
         message.values.teach,
         message.values.servo,
