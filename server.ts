@@ -3,12 +3,12 @@ import { messageQueue } from "./src/queue/message-queue";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
-// import cors from "cors";
+import cors from "cors";
 
 const app = express();
 const port = 8082;
 
-// app.use(cors({ credentials: true, origin: true }));
+app.use(cors({ credentials: true, origin: true }));
 app.use(bodyParser.json());
 
 interface ParsedMessage {
@@ -620,7 +620,7 @@ async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
         const { ipAddress: alarmIp } = parsedMessage.data;
         const alarmsResult = await dbPool.query(
           `
-          SELECT a.id, c.ip_address AS ip_address, a.code, a.alarm, a.text, a.origin_date, a.is_active 
+          SELECT a.id, a.ip_address, a.code, a.alarm, a.text, a.origin_date, a.is_active 
           FROM alarm a
           INNER JOIN controller c ON a.controller_id = c.id 
           WHERE c.ip_address = $1 AND a.is_active = true AND c.status = 'active'
@@ -635,7 +635,7 @@ async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
         const { ipAddress: statusIp } = parsedMessage.data;
         const statusResult = await dbPool.query(
           `
-          SELECT cs.id, c.ip_address AS ip_address, cs.connection
+          SELECT cs.id, cs.ip_address, cs.connection
           FROM controller_status cs
           INNER JOIN controller c ON cs.controller_id = c.id 
           WHERE c.ip_address = $1 AND c.status = 'active'
