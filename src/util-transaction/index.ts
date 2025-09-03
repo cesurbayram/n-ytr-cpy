@@ -27,8 +27,10 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
         servo_power_time, 
         playback_time, 
         moving_time,
+        operating_time,
+        ip_address
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
 
     for (const value of message.values) {
@@ -38,6 +40,7 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
           servo_power_time,
           playback_time,
           moving_time,
+          operating_time = 0,
         } = value;
 
         const generatedId = uuidv4();
@@ -48,6 +51,8 @@ const utilTransaction = async (message: UtilizationMessage): Promise<void> => {
           servo_power_time,
           playback_time,
           moving_time,
+          operating_time,
+          message.ip_address,
         ]);
       } catch (error) {
         console.error(

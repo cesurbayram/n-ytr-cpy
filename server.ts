@@ -414,193 +414,6 @@ app.post(
   }
 );
 
-const manualBackupResults = new Map<string, any>();
-
-app.post(
-  "/api/manual-backup",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { controllerId, fileTypes } = req.body;
-      console.log("manual-backup req.body", JSON.stringify(req.body, null, 2));
-
-      if (!controllerId || !fileTypes || !Array.isArray(fileTypes)) {
-        return res.status(400).json({ error: "Invalid request body" });
-      }
-
-      const controllerDbRes = await dbPool.query(
-        `SELECT ip_address, name FROM controller WHERE id = $1`,
-        [controllerId]
-      );
-
-      if (controllerDbRes.rows.length === 0) {
-        return res.status(404).json({ error: "Controller not found" });
-      }
-
-      const { ip_address, name } = controllerDbRes.rows[0];
-      console.log("Manual backup for controller:", name, ip_address);
-
-      if (!motocomWebSocket) {
-        return res.status(503).json({ error: "Motocom is not connected" });
-      }
-
-      const requestId = `backup_${Date.now()}`;
-      const wsMessage = {
-        type: "manualBackup",
-        data: {
-          ipAddress: ip_address,
-          controllerName: name,
-          fileTypes: fileTypes,
-          requestId: requestId,
-          controllerId: controllerId,
-        },
-      };
-
-      console.log(
-        "Sending manual backup to WebSocket:",
-        JSON.stringify(wsMessage, null, 2)
-      );
-      motocomWebSocket.send(JSON.stringify(wsMessage));
-
-      return res.status(200).json({
-        success: true,
-        message: "Manual backup initiated",
-        requestId: requestId,
-      });
-    } catch (error) {
-      console.error("An error occurred while processing manual backup:", error);
-      return res
-        .status(500)
-        .json({ error: "An error occurred while processing manual backup" });
-    }
-  }
-);
-
-app.get(
-  "/api/manual-backup-result/:requestId",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { requestId } = req.params;
-
-      if (manualBackupResults.has(requestId)) {
-        const result = manualBackupResults.get(requestId);
-        manualBackupResults.delete(requestId);
-        return res.status(200).json(result);
-      } else {
-        return res.status(202).json({ message: "Backup in progress" });
-      }
-    } catch (error) {
-      console.error("Error retrieving backup result:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    }
-  }
-);
-
-app.get(
-  "/api/backup-history/:controllerId",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { controllerId } = req.params;
-
-      const result = await dbPool.query(
-        `
-        SELECT 
-          id, controller_name, ip_address, file_name, 
-          file_count, file_size_mb, created_at
-        FROM backup_history 
-        WHERE controller_id = $1 
-        ORDER BY created_at DESC
-      `,
-        [controllerId]
-      );
-
-      return res.status(200).json({
-        success: true,
-        data: result.rows,
-      });
-    } catch (error) {
-      console.error("Error fetching backup history:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to fetch backup history",
-      });
-    }
-  }
-);
-
-app.get(
-  "/api/backup-download/:backupId",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { backupId } = req.params;
-
-      const result = await dbPool.query(
-        `
-        SELECT file_name, file_data 
-        FROM backup_history 
-        WHERE id = $1
-      `,
-        [backupId]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: "Backup not found" });
-      }
-
-      const { file_name, file_data } = result.rows[0];
-
-      const zipBuffer = Buffer.from(file_data, "base64");
-
-      res.setHeader("Content-Type", "application/zip");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${file_name}"`
-      );
-      res.setHeader("Content-Length", zipBuffer.length);
-
-      return res.send(zipBuffer);
-    } catch (error) {
-      console.error("Error downloading backup:", error);
-      return res.status(500).json({ error: "Failed to download backup" });
-    }
-  }
-);
-
-app.delete(
-  "/api/backup-history/:backupId",
-  async (req: Request, res: Response): Promise<any> => {
-    try {
-      const { backupId } = req.params;
-
-      const result = await dbPool.query(
-        `
-        DELETE FROM backup_history 
-        WHERE id = $1 
-        RETURNING file_name
-      `,
-        [backupId]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: "Backup not found",
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: `Backup ${result.rows[0].file_name} deleted successfully`,
-      });
-    } catch (error) {
-      console.error("Error deleting backup:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to delete backup",
-      });
-    }
-  }
-);
-
 async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
   try {
     let result;
@@ -647,56 +460,41 @@ async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
 
       case "api_getUtilization":
         const { ipAddress: utilIp } = parsedMessage.data;
-        const latestTimestampResult = await dbPool.query(
+
+        const utilizationResult = await dbPool.query(
           `
-          SELECT MAX(ud.timestamp) as latest_timestamp 
+          SELECT 
+            ud.id, 
+            ud.controller_id, 
+            c.ip_address, 
+            ud.control_power_time, 
+            ud.servo_power_time, 
+            ud.playback_time, 
+            ud.moving_time, 
+            ud.operating_time,
+            ud.timestamp 
           FROM utilization_data ud
           INNER JOIN controller c ON ud.controller_id = c.id 
           WHERE c.ip_address = $1 AND c.status = 'active'
+          ORDER BY ud.timestamp DESC
+          LIMIT 1
         `,
           [utilIp]
         );
 
-        const latestTimestamp = latestTimestampResult.rows[0]?.latest_timestamp;
+        const utilizationData = utilizationResult.rows[0] || {
+          id: null,
+          controller_id: null,
+          ip_address: utilIp,
+          control_power_time: 0,
+          servo_power_time: 0,
+          playback_time: 0,
+          moving_time: 0,
+          operating_time: 0,
+          timestamp: null,
+        };
 
-        if (!latestTimestamp) {
-          result = {
-            success: true,
-            data: {
-              id: null,
-              controller_id: null,
-              ip_address: utilIp,
-              control_power_time: 0,
-              servo_power_time: 0,
-              playback_time: 0,
-              moving_time: 0,
-              timestamp: null,
-            },
-          };
-        } else {
-          const utilizationResult = await dbPool.query(
-            `
-            SELECT ud.id, ud.controller_id, c.ip_address, ud.control_power_time, ud.servo_power_time, 
-                   ud.playback_time, ud.moving_time, ud.timestamp 
-            FROM utilization_data ud
-            INNER JOIN controller c ON ud.controller_id = c.id 
-            WHERE c.ip_address = $1 AND ud.timestamp = $2 AND c.status = 'active'
-          `,
-            [utilIp, latestTimestamp]
-          );
-
-          const utilizationData = utilizationResult.rows[0] || {
-            id: null,
-            controller_id: null,
-            ip_address: utilIp,
-            control_power_time: 0,
-            servo_power_time: 0,
-            playback_time: 0,
-            moving_time: 0,
-            timestamp: null,
-          };
-          result = { success: true, data: utilizationData };
-        }
+        result = { success: true, data: utilizationData };
         break;
 
       case "api_getBackupSchedules":
@@ -798,48 +596,16 @@ wssMotocom.on("connection", (ws: WebSocket) => {
 
       console.log("Received:", parsedMessage);
 
-      if (parsedMessage.type === "manualBackupComplete") {
-        const { requestId } = parsedMessage.data;
-        manualBackupResults.set(requestId, parsedMessage.data);
-        console.log(`Manual backup result stored for requestId: ${requestId}`);
+      if (
+        parsedMessage.type === "robotStatus" &&
+        parsedMessage.data.values?.c_backup !== undefined
+      ) {
+        await messageQueue.addToQueue("backup", parsedMessage.data);
+        return;
+      }
 
-        if (parsedMessage.data.success && parsedMessage.data.fileData) {
-          try {
-            const fileSizeBytes = Math.round(
-              (parsedMessage.data.fileData.length * 3) / 4
-            );
-            const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
-
-            const backupId = `backup_${Date.now()}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`;
-
-            await dbPool.query(
-              `
-              INSERT INTO backup_history (
-                id, controller_id, controller_name, ip_address, 
-                file_name, file_data, file_count, file_size_mb, created_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-            `,
-              [
-                backupId,
-                parsedMessage.data.controllerId || "unknown",
-                parsedMessage.data.controllerName,
-                parsedMessage.data.ipAddress,
-                parsedMessage.data.fileName,
-                parsedMessage.data.fileData,
-                parsedMessage.data.fileCount,
-                fileSizeMB,
-              ]
-            );
-
-            console.log(
-              `Backup saved to database: ${parsedMessage.data.fileName} (${fileSizeMB} MB)`
-            );
-          } catch (error) {
-            console.error("Error saving backup to database:", error);
-          }
-        }
+      if (parsedMessage.type === "Backup") {
+        await messageQueue.addToQueue("backup", parsedMessage.data);
         return;
       }
 
