@@ -3,12 +3,12 @@ import { messageQueue } from "./src/queue/message-queue";
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import dbPool from "./src/utils/db-util";
-import cors from "cors";
+// import cors from "cors";
 
 const app = express();
 const port = 8082;
 
-app.use(cors({ credentials: true, origin: true }));
+// app.use(cors({ credentials: true, origin: true }));
 app.use(bodyParser.json());
 
 interface ParsedMessage {
