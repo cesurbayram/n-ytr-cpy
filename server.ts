@@ -414,6 +414,61 @@ app.post(
   }
 );
 
+app.post(
+  "/api/general-file-save-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { controllerId, fileName } = req.body;
+      console.log("general-file-save req.body", req.body);
+
+      if (!controllerId || !fileName) {
+        return res
+          .status(400)
+          .send("Invalid request body - controllerId and fileName required");
+      }
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+      console.log("general-file-save client-side ip", ipAddress);
+
+      if (!ipAddress) {
+        return res.status(404).send("Controller not found");
+      }
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      const wsMessage = {
+        type: "GeneralFileSave",
+        data: {
+          ipAddress: ipAddress,
+          FileName: fileName,
+        },
+      };
+
+      console.log(
+        "Sending GeneralFileSave to WebSocket:",
+        JSON.stringify(wsMessage, null, 2)
+      );
+      motocomWebSocket.send(JSON.stringify(wsMessage));
+
+      return res.status(200).send("GeneralFileSave message sent");
+    } catch (error) {
+      console.error(
+        "An error occurred while processing GeneralFileSave request:",
+        error
+      );
+      return res
+        .status(500)
+        .send("An error occurred while processing the request");
+    }
+  }
+);
+
 async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
   try {
     let result;
@@ -606,6 +661,12 @@ wssMotocom.on("connection", (ws: WebSocket) => {
 
       if (parsedMessage.type === "Backup") {
         await messageQueue.addToQueue("backup", parsedMessage.data);
+        return;
+      }
+
+      if (parsedMessage.type === "GeneralFileSave") {
+        console.log("Received GeneralFileSave response:", parsedMessage);
+        await messageQueue.addToQueue("generalFileSave", parsedMessage.data);
         return;
       }
 
