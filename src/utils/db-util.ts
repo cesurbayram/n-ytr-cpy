@@ -4,11 +4,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const dbPool = new Pool({
-  user: String(process.env.USER),
-  host: String(process.env.HOST),
-  database: String(process.env.DATABASE),
+  user: String(process.env.DB_USER),
+  host: String(process.env.DB_HOST),
+  database: String(process.env.DB_DATABASE),
   port: 5432,
-  password: String(process.env.PASSWORD),
+  password: String(process.env.DB_PASSWORD),
   ssl: false,
   max: 20,
   idleTimeoutMillis: 30000,

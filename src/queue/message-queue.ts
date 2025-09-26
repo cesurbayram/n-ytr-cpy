@@ -11,6 +11,7 @@ import torkExaminationTransaction from "../torke-examination-transaction";
 import registerTransaction from "../register-transaction";
 import backupTransaction from "../backup-history-transaction/backup-transaction";
 import { handleGeneralFileSave } from "../general-file-save-transaction";
+import generalDataTransaction from "../general-data-transaction";
 
 interface QueueItem {
   type: string;
@@ -32,6 +33,7 @@ class MessageQueue {
     register: [],
     backup: [],
     generalFileSave: [],
+    generalData: [],
   };
   private processing: boolean = false;
 
@@ -76,6 +78,9 @@ class MessageQueue {
           break;
         case "generalFileSave":
           await handleGeneralFileSave(data);
+          break;
+        case "generalData":
+          await generalDataTransaction(data);
           break;
         default:
           console.error(`Unknown message type: ${type}`);
@@ -141,6 +146,9 @@ class MessageQueue {
                     break;
                   case "generalFileSave":
                     await handleGeneralFileSave(item.data);
+                    break;
+                  case "generalData":
+                    await generalDataTransaction(item.data);
                     break;
                 }
               } catch (error) {

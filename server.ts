@@ -469,6 +469,153 @@ app.post(
   }
 );
 
+
+app.post(
+  "/api/general-register-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { type, data } = req.body;
+      console.log("general-register-socket req.body", req.body);
+
+      if (!data || !data.controllerId || !data.GeneralNo) {
+        return res.status(400).send("Invalid request body - controllerId and GeneralNo required");
+      }
+
+      const { controllerId, GeneralNo } = data;
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+
+      if (!ipAddress) {
+        return res.status(404).send("Controller not found");
+      }
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      const wsMessage = {
+        type: "GeneralRegister",
+        data: {
+          ipAddress: ipAddress,
+          GeneralNo: GeneralNo,
+        },
+      };
+
+      console.log("Sending GeneralRegister to WebSocket:", JSON.stringify(wsMessage, null, 2));
+      motocomWebSocket.send(JSON.stringify(wsMessage));
+
+      return res.status(200).send("GeneralRegister monitoring started");
+    } catch (error) {
+      console.error("An error occurred while processing GeneralRegister request:", error);
+      return res.status(500).send("An error occurred while processing the request");
+    }
+  }
+);
+
+
+app.post(
+  "/api/general-signal-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { type, data } = req.body;
+      console.log("general-signal-socket req.body", req.body);
+
+      if (!data || !data.controllerId || !data.GeneralNo) {
+        return res.status(400).send("Invalid request body - controllerId and GeneralNo required");
+      }
+
+      const { controllerId, GeneralNo } = data;
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+
+      if (!ipAddress) {
+        return res.status(404).send("Controller not found");
+      }
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      const wsMessage = {
+        type: "GeneralSignal",
+        data: {
+          ipAddress: ipAddress,
+          GeneralNo: GeneralNo,
+        },
+      };
+
+      console.log("Sending GeneralSignal to WebSocket:", JSON.stringify(wsMessage, null, 2));
+      motocomWebSocket.send(JSON.stringify(wsMessage));
+
+      return res.status(200).send("GeneralSignal monitoring started");
+    } catch (error) {
+      console.error("An error occurred while processing GeneralSignal request:", error);
+      return res.status(500).send("An error occurred while processing the request");
+    }
+  }
+);
+
+
+app.post(
+  "/api/general-variable-socket",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { type, data } = req.body;
+      console.log("general-variable-socket req.body", req.body);
+
+      if (!data || !data.controllerId || !data.GeneralNo || !type) {
+        return res.status(400).send("Invalid request body - type, controllerId and GeneralNo required");
+      }
+
+      const { controllerId, GeneralNo } = data;
+
+      // Validate variable type
+      const validTypes = ["GeneralByte", "GeneralInt", "GeneralReal", "GeneralDouble", "GeneralString"];
+      if (!validTypes.includes(type)) {
+        return res.status(400).send(`Invalid variable type. Must be one of: ${validTypes.join(", ")}`);
+      }
+
+      const controllerDbRes = await dbPool.query(
+        `SELECT ip_address FROM controller WHERE id = $1`,
+        [controllerId]
+      );
+      const ipAddress = controllerDbRes?.rows[0]?.ip_address;
+
+      if (!ipAddress) {
+        return res.status(404).send("Controller not found");
+      }
+
+      if (!motocomWebSocket) {
+        return res.status(503).send("Motocom is not connected");
+      }
+
+      const wsMessage = {
+        type: type,
+        data: {
+          ipAddress: ipAddress,
+          GeneralNo: GeneralNo,
+        },
+      };
+
+      console.log(`Sending ${type} to WebSocket:`, JSON.stringify(wsMessage, null, 2));
+      motocomWebSocket.send(JSON.stringify(wsMessage));
+
+      return res.status(200).send(`${type} monitoring started`);
+    } catch (error) {
+      console.error(`An error occurred while processing ${req.body.type || "GeneralVariable"} request:`, error);
+      return res.status(500).send("An error occurred while processing the request");
+    }
+  }
+);
+
 async function handleApiRequest(ws: WebSocket, parsedMessage: ParsedMessage) {
   try {
     let result;
@@ -614,7 +761,6 @@ wssMotocom.on("connection", (ws: WebSocket) => {
   }, 10000);
 
   ws.on("pong", () => {
-    // console.log("Client pong received");
   });
 
   ws.on("ping", () => {
@@ -672,6 +818,12 @@ wssMotocom.on("connection", (ws: WebSocket) => {
 
       if (parsedMessage.type.startsWith("api_")) {
         await handleApiRequest(ws, parsedMessage);
+        return;
+      }
+
+
+      if (["GeneralRegister", "GeneralSignal", "GeneralByte", "GeneralInt", "GeneralReal", "GeneralDouble", "GeneralString"].includes(parsedMessage.type)) {
+        await messageQueue.addToQueue("generalData", parsedMessage.data);
         return;
       }
 
